@@ -123,7 +123,7 @@ describe("policy", () => {
     const dir = await mkdtemp(join(tmpdir(), "novacheck-policy-invalid-"));
     try {
       await writeFile(join(dir, ".novacheck.yml"), "magic: true\n");
-      expect(loadPolicy(dir)).rejects.toThrow("chiavi sconosciute");
+      expect(loadPolicy(dir)).rejects.toThrow("unknown keys");
     } finally {
       await rm(dir, { recursive: true, force: true });
     }

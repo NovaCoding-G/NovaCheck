@@ -13,14 +13,14 @@ export function createSecretsDetector(
 ): Detector {
   return {
     id: "secrets",
-    name: "Segreti hardcoded",
+    name: "Hardcoded secrets",
     description:
-      "Trova API key, token, password e connection string in chiaro (secretlint + entropia contestuale).",
+      "Finds plaintext API keys, tokens, passwords, and connection strings using secretlint and contextual entropy.",
     async run(ctx: ScanContext): Promise<Finding[]> {
       const result = await runSecretsScan(ctx.rootDir, options);
       ctx.recordStats({
         detectorId: "secrets",
-        name: "Segreti hardcoded",
+        name: "Hardcoded secrets",
         filesReceived: result.filesReceived,
         filesAnalyzed: result.filesAnalyzed,
         discoveryPatterns: result.discoveryPatterns,

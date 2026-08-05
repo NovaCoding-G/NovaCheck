@@ -59,9 +59,9 @@ export function scoreBand(score: number): {
   /** shields.io color name */
   shields: string;
 } {
-  if (score >= 90) return { label: "eccellente", color: "green", shields: "brightgreen" };
-  if (score >= 70) return { label: "buono", color: "green", shields: "green" };
-  if (score >= 50) return { label: "discreto", color: "yellow", shields: "yellow" };
-  if (score >= 30) return { label: "scarso", color: "orange", shields: "orange" };
-  return { label: "critico", color: "red", shields: "red" };
+  if (score >= 90) return { label: "excellent", color: "green", shields: "brightgreen" };
+  if (score >= 70) return { label: "good", color: "green", shields: "green" };
+  if (score >= 50) return { label: "fair", color: "yellow", shields: "yellow" };
+  if (score >= 30) return { label: "poor", color: "orange", shields: "orange" };
+  return { label: "critical", color: "red", shields: "red" };
 }

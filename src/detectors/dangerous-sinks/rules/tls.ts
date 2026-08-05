@@ -12,13 +12,13 @@ import type { SinkMatch } from "../types.ts";
 function explainTls(): { explanation: string; fixPrompt: string } {
   return {
     explanation:
-      `Verifica del certificato TLS disattivata. La connessione è vulnerabile a man-in-the-middle: ` +
-      `un attaccante sulla rete può intercettare o alterare traffico (token, password, dati). ` +
-      `Spesso l'AI lo inserisce per "sistemare" errori SSL in sviluppo e poi resta in produzione.`,
+      `TLS certificate verification is disabled. The connection is vulnerable to man-in-the-middle attacks: ` +
+      `an attacker on the network can intercept or modify traffic such as tokens, passwords, and data. ` +
+      `AI often adds this to work around SSL errors during development, and it can remain enabled in production.`,
     fixPrompt:
-      `Riabilita la verifica TLS (rimuovi rejectUnauthorized: false / verify=False). ` +
-      `Se usi un certificato self-signed in dev, configura una CA di fiducia locale invece di disattivare i check. ` +
-      `Non impostare NODE_TLS_REJECT_UNAUTHORIZED=0.`,
+      `Re-enable TLS verification (remove rejectUnauthorized: false or verify=False). ` +
+      `If development uses a self-signed certificate, configure a trusted local CA instead of disabling checks. ` +
+      `Do not set NODE_TLS_REJECT_UNAUTHORIZED=0.`,
   };
 }
 
@@ -36,7 +36,7 @@ export function findJsTlsSinks(tree: Tree, file: string): SinkMatch[] {
           severity: "critical",
           title: "TLS: rejectUnauthorized: false",
           explanation,
-          fixPrompt: `${fixPrompt} Occorrenza in ${file}:${lineOf(node)}.`,
+          fixPrompt: `${fixPrompt} Occurrence at ${file}:${lineOf(node)}.`,
           file,
           line: lineOf(node),
           column: colOf(node),
@@ -57,9 +57,9 @@ export function findJsTlsSinks(tree: Tree, file: string): SinkMatch[] {
         out.push({
           kind: "tls",
           severity: "critical",
-          title: "TLS: NODE_TLS_REJECT_UNAUTHORIZED disabilitato",
+          title: "TLS: NODE_TLS_REJECT_UNAUTHORIZED disabled",
           explanation,
-          fixPrompt: `${fixPrompt} Occorrenza in ${file}:${lineOf(node)}.`,
+          fixPrompt: `${fixPrompt} Occurrence at ${file}:${lineOf(node)}.`,
           file,
           line: lineOf(node),
           column: colOf(node),
@@ -88,7 +88,7 @@ export function findPyTlsSinks(tree: Tree, file: string): SinkMatch[] {
         severity: "critical",
         title: "TLS: verify=False",
         explanation,
-        fixPrompt: `${fixPrompt} Occorrenza in ${file}:${lineOf(node)}.`,
+        fixPrompt: `${fixPrompt} Occurrence at ${file}:${lineOf(node)}.`,
         file,
         line: lineOf(node),
         column: colOf(node),
@@ -105,7 +105,7 @@ export function findPyTlsSinks(tree: Tree, file: string): SinkMatch[] {
         severity: "high",
         title: "TLS: ssl=False",
         explanation,
-        fixPrompt: `${fixPrompt} Occorrenza in ${file}:${lineOf(node)}.`,
+        fixPrompt: `${fixPrompt} Occurrence at ${file}:${lineOf(node)}.`,
         file,
         line: lineOf(node),
         column: colOf(node),
@@ -122,7 +122,7 @@ export function findPyTlsSinks(tree: Tree, file: string): SinkMatch[] {
           severity: "critical",
           title: "TLS: ssl.CERT_NONE",
           explanation,
-          fixPrompt: `${fixPrompt} Occorrenza in ${file}:${lineOf(child)}.`,
+          fixPrompt: `${fixPrompt} Occurrence at ${file}:${lineOf(child)}.`,
           file,
           line: lineOf(child),
           column: colOf(child),

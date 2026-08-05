@@ -7,14 +7,14 @@ export { langForFile, initTreeSitter } from "./parser.ts";
 export function createDangerousSinksDetector(): Detector {
   return {
     id: "dangerous-sinks",
-    name: "Sink pericolosi",
+    name: "Dangerous sinks",
     description:
-      "Rileva shell/SQL injection, CORS *, TLS off, eval/Function, XSS (innerHTML), pickle/yaml.load (AST tree-sitter).",
+      "Detects shell/SQL injection, permissive CORS, disabled TLS, eval/Function, XSS, and unsafe pickle/yaml.load using tree-sitter ASTs.",
     async run(ctx: ScanContext): Promise<Finding[]> {
       const result = await runDangerousSinksScan(ctx.rootDir);
       ctx.recordStats({
         detectorId: "dangerous-sinks",
-        name: "Sink pericolosi",
+        name: "Dangerous sinks",
         filesReceived: result.filesReceived,
         filesAnalyzed: result.filesAnalyzed,
         discoveryPatterns: result.discoveryPatterns,

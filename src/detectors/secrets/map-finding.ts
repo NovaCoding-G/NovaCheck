@@ -25,17 +25,17 @@ export function findingFromSecretlint(
     id: `secrets:secretlint:${hit.ruleId}:${relFile}:${hit.line}:${hit.column}`,
     detectorId: "secrets",
     severity,
-    title: `Segreto hardcoded rilevato (${label})`,
+    title: `Hardcoded secret detected (${label})`,
     explanation:
-      `È stato trovato un segreto con pattern noto (${label}) in \`${relFile}\` riga ${hit.line}. ` +
-      `Se pubblichi il repo, chiunque può riusarlo (furto account, costi API, accesso a DB/cloud). ` +
-      `I progetti generati dall'AI inseriscono spesso chiavi di esempio o di sviluppo direttamente nel codice. ` +
-      `Dettaglio: ${hit.message}`,
+      `A secret matching a known pattern (${label}) was found at \`${relFile}:${hit.line}\`. ` +
+      `If the repository is published, anyone could reuse it for account theft, API charges, or database/cloud access. ` +
+      `AI-generated projects often place example or development keys directly in source code. ` +
+      `Details: ${hit.message}`,
     fixPrompt:
-      `Nel file ${relFile} alla riga ${hit.line} c'è un segreto rilevato (${label}: ${hit.messageId}). ` +
-      `Rimuovi il valore in chiaro, spostalo in una variabile d'ambiente (es. process.env / os.environ) ` +
-      `o in un secret manager, aggiungi il file .env a .gitignore se necessario, e ruota/revoca subito ` +
-      `il segreto compromesso sul provider. Non lasciare placeholder che sembrano chiavi reali.`,
+      `A secret was detected in ${relFile} at line ${hit.line} (${label}: ${hit.messageId}). ` +
+      `Remove the plaintext value and move it to an environment variable (for example process.env or os.environ) ` +
+      `or a secret manager. Add .env to .gitignore if needed, and immediately rotate or revoke ` +
+      `the compromised credential with its provider. Do not leave placeholders that resemble real keys.`,
     file: relFile,
     line: hit.line,
     column: hit.column,
@@ -58,17 +58,17 @@ export function findingFromEntropy(
     id: `secrets:entropy:${relFile}:${hit.line}:${hit.column}:${hit.name}`,
     detectorId: "secrets",
     severity: "high",
-    title: `Possibile segreto ad alta entropia: ${hit.name}`,
+    title: `Possible high-entropy secret: ${hit.name}`,
     explanation:
-      `La variabile/chiave \`${hit.name}\` in \`${relFile}:${hit.line}\` ha un valore ad alta entropia ` +
-      `(~${hit.entropy.toFixed(2)} bit/char, evidenza ${masked}). ` +
-      `Combinato con un nome tipico di segreto, è un segnale forte di credenziale hardcoded. ` +
-      `Se è un vero secret e il codice viene pubblicato, va considerato compromesso.`,
+      `The variable or key \`${hit.name}\` at \`${relFile}:${hit.line}\` has a high-entropy value ` +
+      `(~${hit.entropy.toFixed(2)} bits/character, evidence ${masked}). ` +
+      `Combined with a secret-like name, this is a strong signal of a hardcoded credential. ` +
+      `If it is a real secret and the code is published, consider it compromised.`,
     fixPrompt:
-      `In ${relFile} riga ${hit.line}, il valore assegnato a "${hit.name}" sembra un segreto hardcoded. ` +
-      `Spostalo in una variabile d'ambiente o secret store, rimuovilo dal codice e dalla history se già commitato, ` +
-      `e ruota il segreto. Se è un falso positivo (es. hash pubblico intenzionale), rinomina la variabile ` +
-      `in modo che non suggerisca un secret oppure documenta perché è sicuro.`,
+      `In ${relFile} at line ${hit.line}, the value assigned to "${hit.name}" looks like a hardcoded secret. ` +
+      `Move it to an environment variable or secret store, remove it from source and Git history if already committed, ` +
+      `and rotate it. If this is a false positive (for example, an intentional public hash), rename the variable ` +
+      `so it does not imply a secret, or document why it is safe.`,
     file: relFile,
     line: hit.line,
     column: hit.column,

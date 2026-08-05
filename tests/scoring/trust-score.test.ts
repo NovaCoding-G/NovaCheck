@@ -70,9 +70,9 @@ describe("priority ordering", () => {
 
 describe("scoreBand", () => {
   test("maps bands", () => {
-    expect(scoreBand(95).label).toBe("eccellente");
-    expect(scoreBand(75).label).toBe("buono");
-    expect(scoreBand(55).label).toBe("discreto");
+    expect(scoreBand(95).label).toBe("excellent");
+    expect(scoreBand(75).label).toBe("good");
+    expect(scoreBand(55).label).toBe("fair");
     expect(scoreBand(10).shields).toBe("red");
   });
 });

@@ -93,18 +93,18 @@ function parseArgs(argv: string[]): CliArgs {
     } else if (a === "--policy") {
       const next = argv[++i];
       if (!next || next.startsWith("-")) {
-        throw new Error("--policy richiede il percorso di un file.");
+        throw new Error("--policy requires a file path.");
       }
       args.policyPath = resolve(next);
     } else if (a === "--fail-below") {
       const next = argv[++i];
       const value = Number(next);
       if (!Number.isInteger(value) || value < 0 || value > 100) {
-        throw new Error("--fail-below deve essere un intero tra 0 e 100.");
+        throw new Error("--fail-below must be an integer between 0 and 100.");
       }
       args.failBelow = value;
     } else if (a.startsWith("-")) {
-      throw new Error(`Opzione sconosciuta: ${a}`);
+      throw new Error(`Unknown option: ${a}`);
     } else if (!a.startsWith("-")) {
       args.rootDir = resolve(a);
     }
@@ -114,30 +114,30 @@ function parseArgs(argv: string[]): CliArgs {
 }
 
 function printHelp(): void {
-  console.log(`NovaCheck — sicurezza + presenza AI per progetti vibe-coded
+  console.log(`NovaCheck — security and AI provenance for AI-generated projects
 
-Uso:
-  novacheck [directory] [opzioni]
+Usage:
+  novacheck [directory] [options]
 
-Detector:
+Detectors:
   ghost-deps, secrets, env-leak, supply-chain,
   dangerous-sinks (shell/SQL/CORS/TLS/eval/XSS/deser), insecure-crypto,
-  ai-unreviewed, ai-presence (solo marker espliciti)
+  ai-unreviewed, ai-presence (explicit markers only)
 
-Opzioni:
-  --offline         Nessuna rete (registry: solo cache)
-  --changed [base]  Mostra e valuta solo finding su file cambiati da base
-                    (default: HEAD~1; include staged, unstaged e untracked)
-  --policy <path>   Policy YAML/JSON (default: .novacheck.yml se presente)
-  --sarif [path]    Scrive SARIF per GitHub Code Scanning
-  --verbose, -v     Diagnostica: detector, file ricevuti/analizzati, pattern
-  --debug           Alias di --verbose
-  --html [path]     Scrive report HTML (default: <dir>/.novacheck/report.html)
-  --no-html         Non scrivere il report HTML
-  --badge            Scrive badge SVG e snippet README
-  --fail-below N     Sovrascrive la soglia policy (default: 70)
-  -V, --version      Mostra la versione
-  -h, --help        Mostra questo aiuto
+Options:
+  --offline         Disable network access (registry cache only)
+  --changed [base]  Show and score findings only in files changed from base
+                    (default: HEAD~1; includes staged, unstaged, and untracked)
+  --policy <path>   YAML/JSON policy (default: .novacheck.yml when present)
+  --sarif [path]    Write SARIF for GitHub Code Scanning
+  --verbose, -v     Diagnostics: detectors, files received/analyzed, patterns
+  --debug           Alias for --verbose
+  --html [path]     Write HTML report (default: <dir>/.novacheck/report.html)
+  --no-html         Do not write the HTML report
+  --badge           Write an SVG badge and README snippet
+  --fail-below N    Override the policy threshold (default: 70)
+  -V, --version     Show the version
+  -h, --help        Show this help
 `);
 }
 
@@ -181,7 +181,7 @@ async function main(): Promise<void> {
       filesCount: changed.files.size,
     };
     console.log(
-      `Scope diff: ${changed.files.size} file cambiati rispetto a ${changed.base}`,
+      `Diff scope: ${changed.files.size} changed ${changed.files.size === 1 ? "file" : "files"} compared with ${changed.base}`,
     );
   }
   result = applyPolicy(result, policy);

@@ -15,13 +15,13 @@ import type { SinkMatch } from "../types.ts";
 function explainCors(): { explanation: string; fixPrompt: string } {
   return {
     explanation:
-      `CORS configurato in modo troppo permissivo (origine \`*\` o reflection di qualsiasi Origin). ` +
-      `Qualsiasi sito può far fare al browser richieste autenticate verso la tua API e leggere le risposte, ` +
-      `esponendo dati utente. Pattern frequente nel boilerplate generato dall'AI "per far funzionare il frontend".`,
+      `CORS is configured too broadly (origin \`*\` or reflection of any Origin). ` +
+      `Any website may be able to make authenticated browser requests to your API and read the responses, ` +
+      `exposing user data. This frequently appears in AI-generated boilerplate intended to make the frontend work.`,
     fixPrompt:
-      `Restringi CORS a un allowlist esplicito di origini (es. https://app.example.com). ` +
-      `Non usare origin: '*' né origin: true in produzione se usi cookie/Authorization. ` +
-      `Allinea credentials e metodi a ciò che serve davvero.`,
+      `Restrict CORS to an explicit allowlist of origins (for example https://app.example.com). ` +
+      `Do not use origin: '*' or origin: true in production with cookies or Authorization headers. ` +
+      `Limit credentials and methods to what the application actually needs.`,
   };
 }
 
@@ -45,10 +45,10 @@ export function findJsCorsSinks(tree: Tree, file: string): SinkMatch[] {
         kind: "cors",
         severity: "high",
         title: isStarString(origin)
-          ? "CORS permette qualsiasi origine (*)"
-          : "CORS riflette qualsiasi Origin (origin: true)",
+          ? "CORS allows any origin (*)"
+          : "CORS reflects any Origin (origin: true)",
         explanation,
-        fixPrompt: `${fixPrompt} Occorrenza in ${file}:${lineOf(node)}.`,
+        fixPrompt: `${fixPrompt} Occurrence at ${file}:${lineOf(node)}.`,
         file,
         line: lineOf(node),
         column: colOf(node),
@@ -74,7 +74,7 @@ export function findJsCorsSinks(tree: Tree, file: string): SinkMatch[] {
             severity: "high",
             title: "Header Access-Control-Allow-Origin: *",
             explanation,
-            fixPrompt: `${fixPrompt} Occorrenza in ${file}:${lineOf(node)}.`,
+            fixPrompt: `${fixPrompt} Occurrence at ${file}:${lineOf(node)}.`,
             file,
             line: lineOf(node),
             column: colOf(node),
@@ -103,7 +103,7 @@ export function findJsCorsSinks(tree: Tree, file: string): SinkMatch[] {
           severity: "high",
           title: "Header Access-Control-Allow-Origin: *",
           explanation,
-          fixPrompt: `${fixPrompt} Occorrenza in ${file}:${lineOf(node)}.`,
+          fixPrompt: `${fixPrompt} Occurrence at ${file}:${lineOf(node)}.`,
           file,
           line: lineOf(node),
           column: colOf(node),

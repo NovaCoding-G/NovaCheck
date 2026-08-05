@@ -47,7 +47,7 @@ export async function runAiUnreviewedScan(rootDir: string): Promise<{
     return {
       findings: [],
       skipped:
-        "Nessuna provenance riconosciuta (Agent Trace / SPDX-AI-Disclosure). Modulo saltato.",
+        "No recognized provenance found (Agent Trace / SPDX-AI-Disclosure). Detector skipped.",
       provenanceSources: [],
       filesReceived: 0,
       filesAnalyzed: 0,

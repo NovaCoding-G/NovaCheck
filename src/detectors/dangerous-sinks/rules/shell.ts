@@ -29,14 +29,14 @@ const JS_SHELL_FNS = new Set([
 function explainShell(lang: string): { explanation: string; fixPrompt: string } {
   return {
     explanation:
-      `Comando shell costruito con input dinamico (${lang}). ` +
-      `Se parte del comando viene da richiesta utente o da dati non fidati, un attaccante può iniettare ` +
-      `metacaratteri shell (\`;\`, \`&&\`, \`|\`) ed eseguire codice arbitrario sul server. ` +
-      `È un pattern tipico del codice generato dall'AI che "fa funzionare" la feature senza sanitizzare.`,
+      `Shell command built with dynamic input (${lang}). ` +
+      `If any part comes from a user request or untrusted data, an attacker can inject ` +
+      `shell metacharacters (\`;\`, \`&&\`, \`|\`) and execute arbitrary code on the server. ` +
+      `This is a common pattern in AI-generated code that prioritizes making a feature work over sanitization.`,
     fixPrompt:
-      `Rimuovi l'interpolazione/concatenazione nel comando shell. Usa un'API con argomenti separati ` +
-      `(spawn/execFile con array di args, senza shell:true; in Python subprocess.run([...], shell=False)). ` +
-      `Valida e allowlist-a ogni input utente. Non passare mai stringhe di comando costruite a runtime.`,
+      `Remove interpolation and concatenation from the shell command. Use an API with separate arguments ` +
+      `(spawn/execFile with an args array and no shell:true; in Python use subprocess.run([...], shell=False)). ` +
+      `Validate and allowlist every user input. Never pass command strings built at runtime.`,
   };
 }
 
@@ -98,7 +98,7 @@ export function findJsShellSinks(tree: Tree, file: string): SinkMatch[] {
       severity: "critical",
       title: `Shell injection risk: ${jsCalleeText(node)}`,
       explanation,
-      fixPrompt: `${fixPrompt} Occorrenza in ${file}:${lineOf(node)}.`,
+      fixPrompt: `${fixPrompt} Occurrence at ${file}:${lineOf(node)}.`,
       file,
       line: lineOf(node),
       column: colOf(node),
@@ -222,7 +222,7 @@ function pyHit(
     severity: "critical",
     title: `Shell injection risk: ${pyCalleeName(node) ?? "subprocess"}`,
     explanation,
-    fixPrompt: `${fixPrompt} Occorrenza in ${file}:${lineOf(node)}.`,
+    fixPrompt: `${fixPrompt} Occurrence at ${file}:${lineOf(node)}.`,
     file,
     line: lineOf(node),
     column: colOf(node),

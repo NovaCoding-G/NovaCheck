@@ -49,26 +49,26 @@ export function formatVerboseDiagnostics(result: ScanResult): string {
   const d = result.diagnostics;
   const lines: string[] = [];
   lines.push("");
-  lines.push(`${ansi.bold}── Diagnostica (--verbose) ──${ansi.reset}`);
+  lines.push(`${ansi.bold}── Diagnostics (--verbose) ──${ansi.reset}`);
   lines.push(
-    `${ansi.dim}File totali ricevuti (somma detector): ${d.totalFilesReceived} · unici: ${d.uniqueFilesTouched}${ansi.reset}`,
+    `${ansi.dim}Files received (detector total): ${d.totalFilesReceived} · unique: ${d.uniqueFilesTouched}${ansi.reset}`,
   );
-  lines.push(`${ansi.bold}Pattern di discovery (unione):${ansi.reset}`);
+  lines.push(`${ansi.bold}Discovery patterns (combined):${ansi.reset}`);
   for (const p of d.discoveryPatterns) {
     lines.push(`  ${ansi.dim}•${ansi.reset} ${p}`);
   }
   lines.push("");
-  lines.push(`${ansi.bold}Detector registrati / eseguiti:${ansi.reset}`);
+  lines.push(`${ansi.bold}Registered / executed detectors:${ansi.reset}`);
   for (const det of d.detectors) {
     const status =
       det.status === "skipped"
-        ? `${ansi.yellow}saltato${ansi.reset}${det.skipReason ? ` — ${det.skipReason}` : ""}`
-        : `${ansi.green}eseguito${ansi.reset}`;
+        ? `${ansi.yellow}skipped${ansi.reset}${det.skipReason ? ` — ${det.skipReason}` : ""}`
+        : `${ansi.green}completed${ansi.reset}`;
     lines.push(
       `  ${ansi.bold}${det.detectorId}${ansi.reset} (${det.name}): ${status}`,
     );
     lines.push(
-      `    file ricevuti: ${det.filesReceived} · analizzati: ${det.filesAnalyzed} · finding: ${det.findingsCount}`,
+      `    files received: ${det.filesReceived} · analyzed: ${det.filesAnalyzed} · findings: ${det.findingsCount}`,
     );
     if (det.discoveryPatterns.length > 0) {
       lines.push(`    pattern:`);
@@ -119,22 +119,22 @@ export function formatTerminalReport(
       `${scoreBar(result.trustScore)}  ${ansi.dim}${band.label}${ansi.reset}`,
   );
   lines.push(
-    `${actionable.length} ${actionable.length === 1 ? "rischio" : "rischi"} da valutare · ` +
-      `${infoCount} ${infoCount === 1 ? "segnale informativo" : "segnali informativi"} · ` +
-      `${result.detectorsRun.length} controlli · ${formatDuration(result.durationMs)}`,
+    `${actionable.length} ${actionable.length === 1 ? "risk" : "risks"} to review · ` +
+      `${infoCount} informational ${infoCount === 1 ? "signal" : "signals"} · ` +
+      `${result.detectorsRun.length} checks · ${formatDuration(result.durationMs)}`,
   );
 
   const summary = SEV_SUMMARY(counts);
-  if (summary) lines.push(`Severità  ${summary}`);
+  if (summary) lines.push(`Severity  ${summary}`);
 
   lines.push("");
-  lines.push(`${ansi.bold}Cosa fare adesso${ansi.reset}`);
+  lines.push(`${ansi.bold}What to do next${ansi.reset}`);
   lines.push(`  ${nextAction(counts, actionable.length)}`);
 
   if (top.length > 0) {
     lines.push("");
     lines.push(
-      `${ansi.bold}Rischi prioritari${ansi.reset} ${ansi.dim}(${top.length} di ${actionable.length})${ansi.reset}`,
+      `${ansi.bold}Priority risks${ansi.reset} ${ansi.dim}(${top.length} of ${actionable.length})${ansi.reset}`,
     );
     lines.push(`${ansi.dim}${"─".repeat(64)}${ansi.reset}`);
     top.forEach((f, i) => {
@@ -144,10 +144,10 @@ export function formatTerminalReport(
         `${c}${ansi.bold}[${f.severity.toUpperCase()}]${ansi.reset} ${ansi.bold}${f.title}${ansi.reset}`,
       );
       const where = loc(f);
-      if (where) lines.push(`  ${ansi.dim}Dove: ${where}${ansi.reset}`);
-      lines.push(`  ${ansi.bold}Rischio${ansi.reset}`);
+      if (where) lines.push(`  ${ansi.dim}Location: ${where}${ansi.reset}`);
+      lines.push(`  ${ansi.bold}Risk${ansi.reset}`);
       lines.push(`  ${wrap(f.explanation, 78, "  ")}`);
-      lines.push(`  ${ansi.bold}Correzione consigliata${ansi.reset}`);
+      lines.push(`  ${ansi.bold}Recommended fix${ansi.reset}`);
       lines.push(`  ${ansi.cyan}${wrap(f.fixPrompt, 78, "  ")}${ansi.reset}`);
       if (i < top.length - 1) {
         lines.push(`  ${ansi.dim}${"·".repeat(32)}${ansi.reset}`);
@@ -156,7 +156,7 @@ export function formatTerminalReport(
   } else {
     lines.push("");
     lines.push(
-      `${ansi.green}${ansi.bold}Nessun rischio ad alta confidenza rilevato.${ansi.reset}`,
+      `${ansi.green}${ansi.bold}No high-confidence risks detected.${ansi.reset}`,
     );
   }
 
@@ -164,13 +164,13 @@ export function formatTerminalReport(
   if (rest > 0) {
     lines.push("");
     lines.push(
-      `${ansi.dim}Altri ${rest} rischi sono disponibili nel report HTML/SARIF.${ansi.reset}`,
+      `${ansi.dim}${rest} more ${rest === 1 ? "risk is" : "risks are"} available in the HTML/SARIF report.${ansi.reset}`,
     );
   }
 
   if (result.detectorsSkipped.length > 0) {
     lines.push("");
-    lines.push(`${ansi.yellow}${ansi.bold}Copertura parziale${ansi.reset}`);
+    lines.push(`${ansi.yellow}${ansi.bold}Partial coverage${ansi.reset}`);
     for (const skipped of result.detectorsSkipped) {
       lines.push(`  ${ansi.dim}${skipped.id}: ${skipped.reason}${ansi.reset}`);
     }
@@ -179,7 +179,7 @@ export function formatTerminalReport(
   if (infoCount > 0) {
     lines.push("");
     lines.push(
-      `${ansi.dim}${infoCount} ${infoCount === 1 ? "segnale informativo non incide" : "segnali informativi non incidono"} sul Trust Score.${ansi.reset}`,
+      `${ansi.dim}${infoCount} informational ${infoCount === 1 ? "signal does" : "signals do"} not affect the Trust Score.${ansi.reset}`,
     );
   }
 
@@ -207,12 +207,12 @@ function scanStatus(
     (severity) => counts[severity] > 0,
   );
   if (counts.critical > 0 || score < minimumScore || severityGateFailed) {
-    return { label: "BLOCCATO", color: ansi.red };
+    return { label: "BLOCKED", color: ansi.red };
   }
   if (counts.high > 0 || counts.medium > 0) {
-    return { label: "DA RIVEDERE", color: ansi.yellow };
+    return { label: "REVIEW", color: ansi.yellow };
   }
-  return { label: "PRONTO", color: ansi.green };
+  return { label: "READY", color: ansi.green };
 }
 
 function nextAction(
@@ -220,15 +220,15 @@ function nextAction(
   actionableCount: number,
 ): string {
   if (counts.critical > 0) {
-    return `Correggi prima i ${counts.critical} finding critical: non pubblicare ancora.`;
+    return `Fix the ${counts.critical} critical ${counts.critical === 1 ? "finding" : "findings"} first. Do not ship yet.`;
   }
   if (counts.high > 0) {
-    return `Rivedi i ${counts.high} finding high prima del merge o della pubblicazione.`;
+    return `Review the ${counts.high} high-severity ${counts.high === 1 ? "finding" : "findings"} before merging or shipping.`;
   }
   if (actionableCount > 0) {
-    return "Valuta i finding medium/low e documenta gli eventuali rischi accettati.";
+    return "Review medium/low findings and document any accepted risks.";
   }
-  return "Nessuna correzione obbligatoria. Mantieni il controllo nella CI.";
+  return "No mandatory fixes. Keep NovaCheck enabled in CI.";
 }
 
 function scoreBar(score: number): string {

@@ -13,11 +13,11 @@ import type { SinkMatch } from "../types.ts";
 function explain(): { explanation: string; fixPrompt: string } {
   return {
     explanation:
-      `Deserializzazione non sicura di dati potenzialmente controllati da un attaccante. ` +
-      `Può portare a RCE (pickle, yaml.load unsafe, unserialize). Pattern frequente in codice AI "veloce".`,
+      `Unsafe deserialization of data that may be controlled by an attacker. ` +
+      `This can lead to remote code execution through pickle, unsafe yaml.load, or unserialize. It is common in hastily generated AI code.`,
     fixPrompt:
-      `In Python usa yaml.safe_load / json; evita pickle su dati non fidati. ` +
-      `In JS evita deserializzare oggetti arbitrari; valida lo schema (zod/io-ts).`,
+      `In Python, use yaml.safe_load or JSON and never use pickle with untrusted data. ` +
+      `In JavaScript, avoid deserializing arbitrary objects and validate schemas with tools such as Zod or io-ts.`,
   };
 }
 
@@ -59,7 +59,7 @@ export function findJsDeserializationSinks(tree: Tree, file: string): SinkMatch[
         severity: "critical",
         title: `Unsafe deserialization: ${full}`,
         explanation,
-        fixPrompt: `${fixPrompt} Occorrenza in ${file}:${lineOf(node)}.`,
+        fixPrompt: `${fixPrompt} Occurrence at ${file}:${lineOf(node)}.`,
         file,
         line: lineOf(node),
         column: colOf(node),
@@ -84,7 +84,7 @@ function hit(
     severity,
     title: `Unsafe deserialization: ${label}`,
     explanation,
-    fixPrompt: `${fixPrompt} Occorrenza in ${file}:${lineOf(node)}.`,
+    fixPrompt: `${fixPrompt} Occurrence at ${file}:${lineOf(node)}.`,
     file,
     line: lineOf(node),
     column: colOf(node),

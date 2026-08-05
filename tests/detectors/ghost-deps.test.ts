@@ -192,7 +192,7 @@ describe("Phase 1 resolvers", () => {
       index,
     });
     expect(resolution.action).toBe("blind");
-    expect(resolution.reason).toContain("Possibile alias non risolto");
+    expect(resolution.reason).toContain("Possible unresolved alias");
   });
 
   test("manifest deps stay high-confidence even with vite alias", async () => {
@@ -233,7 +233,7 @@ describe("analyzePackage (Phase 2 severity)", () => {
     expect(findings).toHaveLength(1);
     expect(findings[0]?.severity).toBe("critical");
     expect(findings[0]?.metadata?.resolversApplied).toContain("external-registry");
-    expect(findings[0]?.explanation).toContain("Resolver applicati");
+    expect(findings[0]?.explanation).toContain("Resolvers applied");
   });
 
   test("manifest nonexistent is CRITICAL (same as import-only)", () => {
@@ -269,7 +269,7 @@ describe("analyzePackage (Phase 2 severity)", () => {
       now,
     );
     expect(findings[0]?.severity).toBe("high");
-    expect(findings[0]?.explanation).toContain("Possibile alias non risolto");
+    expect(findings[0]?.explanation).toContain("unresolved alias");
     expect(findings[0]?.id).toContain("nonexistent-blind");
   });
 
@@ -465,7 +465,7 @@ describe("runGhostDepsAnalysis (integration)", () => {
     );
     const f = findings.find((x) => x.evidence === "maybe-alias-or-ghost");
     expect(f?.severity).toBe("high");
-    expect(f?.explanation).toContain("Possibile alias non risolto");
+    expect(f?.explanation).toContain("unresolved alias");
   });
 
   test("workspace fixture excludes @acme/ui, flags real ghosts", async () => {

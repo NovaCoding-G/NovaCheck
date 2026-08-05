@@ -46,11 +46,11 @@ export async function loadPolicy(
       return { path, policy: validatePolicy(parsed, path) };
     } catch (error) {
       if (isMissingFile(error)) continue;
-      if (error instanceof Error && error.message.startsWith("Policy NovaCheck")) {
+      if (error instanceof Error && error.message.startsWith("Invalid NovaCheck policy")) {
         throw error;
       }
       throw new Error(
-        `Policy NovaCheck non valida (${path}): ${
+        `Invalid NovaCheck policy (${path}): ${
           error instanceof Error ? error.message : String(error)
         }`,
       );
@@ -58,7 +58,7 @@ export async function loadPolicy(
   }
 
   if (explicitPath) {
-    throw new Error(`Policy NovaCheck non trovata: ${resolve(explicitPath)}`);
+    throw new Error(`NovaCheck policy not found: ${resolve(explicitPath)}`);
   }
   return { policy: {} };
 }
@@ -103,7 +103,7 @@ export function policyFailureReasons(
   const minimumScore = policy.minimumScore ?? fallbackMinimumScore;
   if (result.trustScore < minimumScore) {
     reasons.push(
-      `Trust Score ${result.trustScore}/100 sotto la soglia ${minimumScore}/100`,
+      `Trust Score ${result.trustScore}/100 is below the ${minimumScore}/100 threshold`,
     );
   }
 
@@ -112,7 +112,7 @@ export function policyFailureReasons(
       (finding) => finding.severity === severity,
     ).length;
     if (count > 0) {
-      reasons.push(`${count} finding con severità ${severity}`);
+      reasons.push(`${count} ${severity}-severity ${count === 1 ? "finding" : "findings"}`);
     }
   }
   return reasons;
@@ -120,14 +120,14 @@ export function policyFailureReasons(
 
 function validatePolicy(value: unknown, path: string): NovaCheckPolicy {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
-    throw new Error(`Policy NovaCheck non valida (${path}): atteso un oggetto.`);
+    throw new Error(`Invalid NovaCheck policy (${path}): expected an object.`);
   }
   const raw = value as Record<string, unknown>;
   const allowed = new Set(["minimumScore", "failOn", "ignore"]);
   const unknown = Object.keys(raw).filter((key) => !allowed.has(key));
   if (unknown.length > 0) {
     throw new Error(
-      `Policy NovaCheck non valida (${path}): chiavi sconosciute: ${unknown.join(", ")}.`,
+      `Invalid NovaCheck policy (${path}): unknown keys: ${unknown.join(", ")}.`,
     );
   }
 
@@ -140,7 +140,7 @@ function validatePolicy(value: unknown, path: string): NovaCheckPolicy {
       raw.minimumScore > 100
     ) {
       throw new Error(
-        `Policy NovaCheck non valida (${path}): minimumScore deve essere un intero 0-100.`,
+        `Invalid NovaCheck policy (${path}): minimumScore must be an integer from 0 to 100.`,
       );
     }
     policy.minimumScore = raw.minimumScore;
@@ -150,14 +150,14 @@ function validatePolicy(value: unknown, path: string): NovaCheckPolicy {
     const invalid = policy.failOn.filter((item) => !SEVERITIES.has(item));
     if (invalid.length > 0) {
       throw new Error(
-        `Policy NovaCheck non valida (${path}): severità sconosciute: ${invalid.join(", ")}.`,
+        `Invalid NovaCheck policy (${path}): unknown severities: ${invalid.join(", ")}.`,
       );
     }
   }
   if (raw.ignore !== undefined) {
     if (!raw.ignore || typeof raw.ignore !== "object" || Array.isArray(raw.ignore)) {
       throw new Error(
-        `Policy NovaCheck non valida (${path}): ignore deve essere un oggetto.`,
+        `Invalid NovaCheck policy (${path}): ignore must be an object.`,
       );
     }
     const ignore = raw.ignore as Record<string, unknown>;
@@ -167,7 +167,7 @@ function validatePolicy(value: unknown, path: string): NovaCheckPolicy {
     );
     if (unknownIgnore.length > 0) {
       throw new Error(
-        `Policy NovaCheck non valida (${path}): chiavi ignore sconosciute: ${unknownIgnore.join(", ")}.`,
+        `Invalid NovaCheck policy (${path}): unknown ignore keys: ${unknownIgnore.join(", ")}.`,
       );
     }
     policy.ignore = {
@@ -194,7 +194,7 @@ function stringArray(value: unknown, name: string, path: string): string[] {
     value.some((item) => typeof item !== "string" || item.length === 0)
   ) {
     throw new Error(
-      `Policy NovaCheck non valida (${path}): ${name} deve essere una lista di stringhe.`,
+      `Invalid NovaCheck policy (${path}): ${name} must be a list of strings.`,
     );
   }
   return value;

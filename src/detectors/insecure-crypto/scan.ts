@@ -52,9 +52,9 @@ export async function runInsecureCryptoScan(
       rel,
       MD5_SHA1_RE,
       "high",
-      "MD5/SHA1 usato in un contesto di sicurezza",
-      "MD5/SHA1 non sono adatti a password, token o firme: sono rotti/collisionabili.",
-      "Sostituisci con SHA-256+ o meglio ancora Argon2/bcrypt/scrypt per password; per integrità usa SHA-256 o HMAC.",
+      "MD5/SHA1 used in a security context",
+      "MD5/SHA1 are unsuitable for passwords, tokens, or signatures because they are broken and collision-prone.",
+      "Replace them with SHA-256 or stronger; use Argon2/bcrypt/scrypt for passwords, and SHA-256 or HMAC for integrity.",
       "crypto-md5-sha1",
       hasSecurityContext,
     );
@@ -64,9 +64,9 @@ export async function runInsecureCryptoScan(
       rel,
       CREATE_CIPHER_RE,
       "critical",
-      "API crypto deprecata/insicura (createCipher)",
-      "crypto.createCipher è deprecata e usa MD5 per derivare la chiave — vulnerabile.",
-      "Usa createCipheriv con chiave e IV espliciti da una KDF moderna (scrypt/pbkdf2).",
+      "Deprecated/insecure crypto API (createCipher)",
+      "crypto.createCipher is deprecated and derives keys with MD5, making it vulnerable.",
+      "Use createCipheriv with an explicit key and IV derived by a modern KDF such as scrypt or PBKDF2.",
       "crypto-create-cipher",
     );
     pushMatches(
@@ -75,9 +75,9 @@ export async function runInsecureCryptoScan(
       rel,
       MATH_RANDOM_SECRET_RE,
       "high",
-      "Segreto/token generato con Math.random",
-      "Math.random non è CSPRNG: i token sono prevedibili.",
-      "Usa crypto.randomBytes / crypto.getRandomValues per token, session id e nonce.",
+      "Secret/token generated with Math.random",
+      "Math.random is not a CSPRNG, so generated tokens are predictable.",
+      "Use crypto.randomBytes or crypto.getRandomValues for tokens, session IDs, and nonces.",
       "crypto-math-random",
     );
     if (lang === "python") {
@@ -87,9 +87,9 @@ export async function runInsecureCryptoScan(
         rel,
         PY_MD5_RE,
         "high",
-        "MD5/SHA1 Python usato in un contesto di sicurezza",
-        "MD5/SHA1 non vanno usati per password, token o firme.",
-        "Usa hashlib.sha256+ o libraries dedicate (argon2, bcrypt).",
+        "Python MD5/SHA1 used in a security context",
+        "MD5/SHA1 must not be used for passwords, tokens, or signatures.",
+        "Use hashlib.sha256 or stronger, or dedicated libraries such as argon2 and bcrypt.",
         "crypto-py-md5-sha1",
         hasSecurityContext,
       );
@@ -99,9 +99,9 @@ export async function runInsecureCryptoScan(
         rel,
         PY_RANDOM_SECRET_RE,
         "high",
-        "Segreto generato con random non criptografico",
-        "Il modulo random non è adatto a token di sicurezza.",
-        "Usa secrets.token_urlsafe() / secrets.token_hex().",
+        "Secret generated with non-cryptographic random",
+        "Python's random module is unsuitable for security tokens.",
+        "Use secrets.token_urlsafe() or secrets.token_hex().",
         "crypto-py-random",
       );
     }
@@ -143,8 +143,8 @@ function pushMatches(
       severity,
       title,
       explanation:
-        `${explanation} Nei progetti AI è comune copiare snippet obsoleti da StackOverflow.`,
-      fixPrompt: `${fixPrompt} Occorrenza in ${file}:${line}.`,
+        `${explanation} AI-generated projects commonly copy outdated snippets from Stack Overflow.`,
+      fixPrompt: `${fixPrompt} Occurrence at ${file}:${line}.`,
       file,
       line,
       evidence: m[0].slice(0, 80),

@@ -99,7 +99,7 @@ describe("runAiUnreviewedScan", () => {
     const f = result.findings[0]!;
     expect(f.detectorId).toBe("ai-unreviewed");
     expect(f.file).toBe("src/generated.ts");
-    expect(f.explanation).toContain("provenance");
+    expect(f.explanation).toContain("Provenance");
     expect(f.fixPrompt.length).toBeGreaterThan(40);
     // Lines 50-60 were human-touched — must not be the only remaining range
     const ranges = f.metadata?.unreviewedRanges as Array<{ start: number; end: number }>;

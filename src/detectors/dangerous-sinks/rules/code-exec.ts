@@ -25,12 +25,12 @@ const JS_VM = new Set([
 function explainExec(): { explanation: string; fixPrompt: string } {
   return {
     explanation:
-      `Esecuzione dinamica di codice (eval / Function / vm). ` +
-      `Se l'input non è totalmente controllato, un attaccante può eseguire JavaScript arbitrario ` +
-      `nel processo (RCE). Pattern tipico di codice AI che "interpreta" stringhe invece di usare parser sicuri.`,
+      `Dynamic code execution through eval, Function, or vm. ` +
+      `If the input is not fully controlled, an attacker can execute arbitrary code ` +
+      `in the process (RCE). This is a common AI-code pattern that interprets strings instead of using safe parsers.`,
     fixPrompt:
-      `Elimina eval/new Function/vm.runIn*. Usa parser JSON, AST o librerie dedicate. ` +
-      `Non eseguire mai stringhe provenienti da utente, file o rete.`,
+      `Remove eval, new Function, and vm.runIn*. Use JSON parsers, ASTs, or dedicated libraries. ` +
+      `Never execute strings received from users, files, or the network.`,
   };
 }
 
@@ -54,7 +54,7 @@ export function findJsCodeExecSinks(tree: Tree, file: string): SinkMatch[] {
           severity: "critical",
           title: `Code execution risk: ${jsCalleeText(node)}`,
           explanation,
-          fixPrompt: `${fixPrompt} Occorrenza in ${file}:${lineOf(node)}.`,
+          fixPrompt: `${fixPrompt} Occurrence at ${file}:${lineOf(node)}.`,
           file,
           line: lineOf(node),
           column: colOf(node),
@@ -84,7 +84,7 @@ export function findPyCodeExecSinks(tree: Tree, file: string): SinkMatch[] {
       severity: "critical",
       title: `Code execution risk: ${name}`,
       explanation,
-      fixPrompt: `${fixPrompt} Occorrenza in ${file}:${lineOf(node)}.`,
+      fixPrompt: `${fixPrompt} Occurrence at ${file}:${lineOf(node)}.`,
       file,
       line: lineOf(node),
       column: colOf(node),

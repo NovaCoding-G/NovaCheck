@@ -9,7 +9,7 @@ const execFileAsync = promisify(execFile);
 
 export const ENV_LEAK_PATTERNS = [
   "recursive .env / .env.* discovery",
-  "git check-ignore + git ls-files per file",
+  "git check-ignore + git ls-files for each file",
 ] as const;
 
 export interface EnvLeakScanResult {
@@ -54,14 +54,14 @@ export async function runEnvLeakScan(
       detectorId: "env-leak",
       severity: "critical",
       title: status.tracked
-        ? `${rel} contiene configurazione sensibile ed è tracciato da Git`
-        : `${rel} non è protetto da .gitignore`,
+        ? `${rel} contains sensitive configuration and is tracked by Git`
+        : `${rel} is not protected by .gitignore`,
       explanation: status.tracked
-        ? `Il file \`${rel}\` è già tracciato da Git. Aggiungerlo a .gitignore non lo rimuove dalla history e le credenziali vanno considerate compromesse.`
-        : `È presente \`${rel}\`, ma Git non lo ignora. Può essere committato e pubblicare credenziali reali.`,
+        ? `The file \`${rel}\` is already tracked by Git. Adding it to .gitignore will not remove it from history, and its credentials must be considered compromised.`
+        : `The file \`${rel}\` exists but is not ignored by Git. It could be committed and expose real credentials.`,
       fixPrompt: status.tracked
-        ? `Rimuovi ${rel} dall'indice e dalla history Git, aggiungilo a .gitignore e ruota tutte le credenziali contenute. Mantieni solo template con placeholder.`
-        : `Aggiungi una regola che ignori ${rel} (o tutti i file .env*) a .gitignore, mantenendo solo i template. Non committare il file.`,
+        ? `Remove ${rel} from the Git index and history, add it to .gitignore, and rotate every credential it contains. Keep only placeholder-based templates.`
+        : `Add a rule for ${rel} (or all .env* files) to .gitignore and keep only templates. Do not commit this file.`,
       file: rel,
       evidence: status.tracked ? "tracked by Git" : "not ignored by Git",
       metadata: { tracked: status.tracked, ignored: status.ignored },

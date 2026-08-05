@@ -6,14 +6,14 @@ export { runEnvLeakScan } from "./scan.ts";
 export function createEnvLeakDetector(): Detector {
   return {
     id: "env-leak",
-    name: "Leak di .env / secret files",
+    name: ".env / secret file exposure",
     description:
-      "Rileva file .env non protetti o già tracciati da Git; i valori segreti sono gestiti dal detector secrets.",
+      "Detects unprotected .env files or files already tracked by Git; secret values are handled by the secrets detector.",
     async run(ctx: ScanContext): Promise<Finding[]> {
       const result = await runEnvLeakScan(ctx.rootDir);
       ctx.recordStats({
         detectorId: "env-leak",
-        name: "Leak di .env / secret files",
+        name: ".env / secret file exposure",
         filesReceived: result.filesReceived,
         filesAnalyzed: result.filesAnalyzed,
         discoveryPatterns: result.discoveryPatterns,

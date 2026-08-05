@@ -16,9 +16,9 @@ function fakeResult(overrides: Partial<ScanResult> = {}): ScanResult {
         id: "t1",
         detectorId: "secrets",
         severity: "critical",
-        title: "Segreto esposto",
-        explanation: "Una chiave API è in chiaro nel codice.",
-        fixPrompt: "Sposta la chiave in una variabile d'ambiente e ruotala.",
+        title: "Exposed secret",
+        explanation: "An API key is stored in plaintext source code.",
+        fixPrompt: "Move the key to an environment variable and rotate it.",
         file: "src/config.ts",
         line: 12,
       },
@@ -26,22 +26,22 @@ function fakeResult(overrides: Partial<ScanResult> = {}): ScanResult {
         id: "t2",
         detectorId: "ghost-deps",
         severity: "high",
-        title: "Pacchetto fantasma",
-        explanation: "Dipendenza inesistente sul registry.",
-        fixPrompt: "Rimuovi o correggi il nome del pacchetto.",
+        title: "Ghost package",
+        explanation: "The dependency does not exist on the registry.",
+        fixPrompt: "Remove the dependency or correct its package name.",
         file: "package.json",
         line: 6,
       },
     ],
     detectorsRun: ["ghost-deps", "secrets"],
     detectorsSkipped: [
-      { id: "ai-unreviewed", reason: "Nessuna provenance" },
+      { id: "ai-unreviewed", reason: "No provenance found" },
     ],
     diagnostics: {
       detectors: [
         {
           detectorId: "ghost-deps",
-          name: "Dipendenze fantasma",
+          name: "Ghost dependencies",
           status: "ran",
           filesReceived: 2,
           filesAnalyzed: 1,
@@ -50,7 +50,7 @@ function fakeResult(overrides: Partial<ScanResult> = {}): ScanResult {
         },
         {
           detectorId: "secrets",
-          name: "Segreti",
+          name: "Secrets",
           status: "ran",
           filesReceived: 3,
           filesAnalyzed: 3,
@@ -74,21 +74,21 @@ describe("reporters", () => {
     const text = formatTerminalReport(fakeResult());
     expect(text).toContain("Trust Score");
     expect(text).toContain("63/100");
-    expect(text).toContain("BLOCCATO");
-    expect(text).toContain("Rischi prioritari");
-    expect(text).toContain("Segreto esposto");
-    expect(text).toContain("Rischio");
-    expect(text).toContain("Correzione consigliata");
-    expect(text).toContain("Copertura parziale");
+    expect(text).toContain("BLOCKED");
+    expect(text).toContain("Priority risks");
+    expect(text).toContain("Exposed secret");
+    expect(text).toContain("Risk");
+    expect(text).toContain("Recommended fix");
+    expect(text).toContain("Partial coverage");
   });
 
   test("verbose prints detector diagnostics before findings", () => {
     const text = formatTerminalReport(fakeResult(), { verbose: true });
-    expect(text).toContain("Diagnostica (--verbose)");
+    expect(text).toContain("Diagnostics (--verbose)");
     expect(text).toContain("ghost-deps");
-    expect(text).toContain("file ricevuti:");
-    expect(text).toContain("analizzati:");
-    expect(text).toContain("Pattern di discovery");
+    expect(text).toContain("files received:");
+    expect(text).toContain("analyzed:");
+    expect(text).toContain("Discovery patterns");
   });
 
   test("separates informational AI signals from actionable risks", () => {
@@ -101,23 +101,23 @@ describe("reporters", () => {
             detectorId: "ai-presence",
             severity: "info",
             title: "Marker AI",
-            explanation: "Il repository dichiara uso di AI.",
-            fixPrompt: "Mantieni aggiornata la dichiarazione.",
+            explanation: "The repository discloses AI usage.",
+            fixPrompt: "Keep the disclosure up to date.",
           },
         ],
       }),
     );
-    expect(info).toContain("PRONTO");
-    expect(info).toContain("0 rischi da valutare");
-    expect(info).toContain("1 segnale informativo");
-    expect(info).not.toContain("Rischi prioritari");
+    expect(info).toContain("READY");
+    expect(info).toContain("0 risks to review");
+    expect(info).toContain("1 informational signal");
+    expect(info).not.toContain("Priority risks");
   });
 
   test("uses the configured policy threshold for status", () => {
     const passing = fakeResult({ trustScore: 88, findings: [] });
     expect(
       formatTerminalReport(passing, { minimumScore: 90 }),
-    ).toContain("BLOCCATO");
+    ).toContain("BLOCKED");
     expect(formatHtmlReport(passing, { minimumScore: 90 })).toContain(
       'status blocked',
     );
@@ -137,7 +137,7 @@ describe("reporters", () => {
     });
     expect(
       formatTerminalReport(lowOnly, { failOn: ["low"] }),
-    ).toContain("BLOCCATO");
+    ).toContain("BLOCKED");
   });
 
   test("html is self-contained and includes badge snippet", () => {
@@ -145,9 +145,9 @@ describe("reporters", () => {
     expect(html).toContain("<!DOCTYPE html>");
     expect(html).toContain("Trust Score");
     expect(html).toContain("63");
-    expect(textHas(html, "Perché è un rischio")).toBe(true);
-    expect(html).toContain("Correzione consigliata");
-    expect(html).toContain("Prossimo passo");
+    expect(textHas(html, "Why this is a risk")).toBe(true);
+    expect(html).toContain("Recommended fix");
+    expect(html).toContain("Next step");
     expect(html).toContain('data-filter="critical"');
     expect(html).toContain("prefers-color-scheme");
     expect(html).toContain("img.shields.io");

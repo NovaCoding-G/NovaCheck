@@ -74,7 +74,7 @@ export function resolveSpecifier(input: ResolveSpecifierInput): ResolutionResult
       action: "exclude",
       resolversApplied: ["local-path"],
       resolversSkipped: skipped,
-      reason: `Percorso locale (${specifier}) — escluso`,
+      reason: `Local path (${specifier}) — excluded`,
       packageName,
     };
   }
@@ -85,7 +85,7 @@ export function resolveSpecifier(input: ResolveSpecifierInput): ResolutionResult
       action: "exclude",
       resolversApplied: ["tsconfig-paths"],
       resolversSkipped: skipped,
-      reason: `Prefisso alias di percorso (${specifier.startsWith("@/") ? "@/" : "~/"}) — escluso`,
+      reason: `Path alias prefix (${specifier.startsWith("@/") ? "@/" : "~/"}) — excluded`,
       packageName,
     };
   }
@@ -96,7 +96,7 @@ export function resolveSpecifier(input: ResolveSpecifierInput): ResolutionResult
       action: "exclude",
       resolversApplied: ["runtime-builtin"],
       resolversSkipped: skipped,
-      reason: `Builtin del runtime (${specifier}) — escluso`,
+      reason: `Runtime builtin (${specifier}) — excluded`,
       packageName,
     };
   }
@@ -105,7 +105,7 @@ export function resolveSpecifier(input: ResolveSpecifierInput): ResolutionResult
       action: "exclude",
       resolversApplied: ["runtime-builtin"],
       resolversSkipped: skipped,
-      reason: `Modulo stdlib Python (${packageName}) — escluso`,
+      reason: `Python standard-library module (${packageName}) — excluded`,
       packageName,
     };
   }
@@ -117,7 +117,7 @@ export function resolveSpecifier(input: ResolveSpecifierInput): ResolutionResult
       action: "exclude",
       resolversApplied: ["package-imports"],
       resolversSkipped: skipped,
-      reason: `Corrisponde a package.json imports "${importMatch}" — escluso`,
+      reason: `Matches package.json imports "${importMatch}" — excluded`,
       packageName,
     };
   }
@@ -127,7 +127,7 @@ export function resolveSpecifier(input: ResolveSpecifierInput): ResolutionResult
       action: "exclude",
       resolversApplied: ["package-imports"],
       resolversSkipped: skipped,
-      reason: `Subpath import (#) non mappato ma non è un pacchetto registry — escluso`,
+      reason: `Unmapped subpath import (#), not a registry package — excluded`,
       packageName,
     };
   }
@@ -139,7 +139,7 @@ export function resolveSpecifier(input: ResolveSpecifierInput): ResolutionResult
       action: "exclude",
       resolversApplied: ["tsconfig-paths"],
       resolversSkipped: skipped,
-      reason: `Corrisponde a tsconfig/jsconfig paths "${tsMatch}" — escluso`,
+      reason: `Matches tsconfig/jsconfig paths "${tsMatch}" — excluded`,
       packageName,
     };
   }
@@ -150,7 +150,7 @@ export function resolveSpecifier(input: ResolveSpecifierInput): ResolutionResult
       action: "exclude",
       resolversApplied: ["workspace"],
       resolversSkipped: skipped,
-      reason: `Pacchetto workspace locale (${packageName}) — escluso`,
+      reason: `Local workspace package (${packageName}) — excluded`,
       packageName,
     };
   }
@@ -160,7 +160,7 @@ export function resolveSpecifier(input: ResolveSpecifierInput): ResolutionResult
     for (const cfg of index.unevaluatedBundlerConfigs) {
       skipped.push({
         resolver: "blind-bundler-alias",
-        reason: `Rilevato alias in ${cfg} (non valutato in questa versione)`,
+        reason: `Alias detected in ${cfg} (not evaluated in this version)`,
       });
     }
   }
@@ -171,7 +171,7 @@ export function resolveSpecifier(input: ResolveSpecifierInput): ResolutionResult
       action: "check-registry",
       resolversApplied: ["external-registry"],
       resolversSkipped: skipped,
-      reason: "Dichiarato nel manifest — candidato registry con alta confidenza",
+      reason: "Declared in manifest — high-confidence registry candidate",
       packageName,
     };
   }
@@ -184,7 +184,7 @@ export function resolveSpecifier(input: ResolveSpecifierInput): ResolutionResult
       resolversApplied: ["blind-bundler-alias"],
       resolversSkipped: skipped,
       reason:
-        "Possibile alias non risolto — verifica (config bundler rilevata ma non valutata)",
+        "Possible unresolved alias — bundler configuration was detected but not evaluated",
       packageName,
     };
   }
@@ -194,7 +194,7 @@ export function resolveSpecifier(input: ResolveSpecifierInput): ResolutionResult
     resolversApplied: ["external-registry"],
     resolversSkipped: skipped,
     reason:
-      "Specificatore a forma di pacchetto; nessun alias/workspace/builtin corrisponde",
+      "Package-shaped specifier; no matching alias, workspace, or builtin",
     packageName,
   };
 }

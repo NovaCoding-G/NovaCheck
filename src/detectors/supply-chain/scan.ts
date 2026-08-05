@@ -71,14 +71,14 @@ export async function runSupplyChainScan(
           id: `supply-chain:script:${name}`,
           detectorId: "supply-chain",
           severity: isLifecycle ? "critical" : "high",
-          title: `Script npm pericoloso: ${name}`,
+          title: `Dangerous npm script: ${name}`,
           explanation:
-            `Lo script \`${name}\` esegue un pattern tipico di supply-chain attack ` +
-            `(es. curl|bash / download remoto). Nei progetti generati dall'AI spesso viene copiato ` +
-            `da tutorial non sicuri e può installare malware al \`npm install\`.`,
+            `The \`${name}\` script executes a pattern commonly used in supply-chain attacks ` +
+            `(for example curl|bash or remote downloads). AI-generated projects often copy it ` +
+            `from unsafe tutorials, and it can install malware during \`npm install\`.`,
           fixPrompt:
-            `Rivedi e rimuovi lo script "${name}" in package.json se non è strettamente necessario. ` +
-            `Non scaricare/eseguire payload remoti in lifecycle scripts. Preferisci dipendenze versionate sul registry.`,
+            `Review and remove the "${name}" script from package.json unless it is strictly required. ` +
+            `Do not download or execute remote payloads in lifecycle scripts. Prefer versioned registry dependencies.`,
           file: "package.json",
           line,
           evidence: `${name}: ${value.slice(0, 80)}`,
@@ -104,13 +104,13 @@ export async function runSupplyChainScan(
           id: `supply-chain:git-http:${name}`,
           detectorId: "supply-chain",
           severity: "high",
-          title: `Dipendenza git su HTTP non cifrato: ${name}`,
+          title: `Git dependency uses unencrypted HTTP: ${name}`,
           explanation:
-            `La dipendenza \`${name}\` punta a un repo git via \`http://\` (non HTTPS). ` +
-            `Un attaccante MITM può sostituire il codice scaricato.`,
+            `The \`${name}\` dependency points to a Git repository over \`http://\` instead of HTTPS. ` +
+            `A man-in-the-middle attacker could replace the downloaded code.`,
           fixPrompt:
-            `In package.json, cambia la URL di "${name}" da git+http:// a git+https:// ` +
-            `oppure usa una versione pubblicata su npm con range semver.`,
+            `In package.json, change "${name}" from git+http:// to git+https://, ` +
+            `or use a version published on npm with a semver range.`,
           file: "package.json",
           line: lineOfKey(raw, `"${name}"`),
           evidence: `${name}: ${version}`,

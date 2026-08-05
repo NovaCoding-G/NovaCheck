@@ -14,12 +14,12 @@ import type { SinkMatch } from "../types.ts";
 function explainXss(): { explanation: string; fixPrompt: string } {
   return {
     explanation:
-      `Sink XSS: HTML/script iniettato nel DOM senza sanitizzazione. ` +
-      `Un input utente può eseguire JavaScript nel browser della vittima (furto sessione, defacement). ` +
-      `L'AI usa spesso innerHTML / dangerouslySetInnerHTML per "far funzionare" il rendering.`,
+      `XSS sink: HTML or script is injected into the DOM without sanitization. ` +
+      `User input could execute JavaScript in a victim's browser, enabling session theft or page defacement. ` +
+      `AI-generated code often uses innerHTML or dangerouslySetInnerHTML simply to make rendering work.`,
     fixPrompt:
-      `Evita innerHTML, document.write e dangerouslySetInnerHTML con dati non fidati. ` +
-      `Usa textContent, elementi creati via DOM API, o sanitizer (DOMPurify). In React preferisci JSX escaping nativo.`,
+      `Avoid innerHTML, document.write, and dangerouslySetInnerHTML with untrusted data. ` +
+      `Use textContent, DOM-created elements, or a sanitizer such as DOMPurify. In React, prefer native JSX escaping.`,
   };
 }
 
@@ -44,7 +44,7 @@ export function findJsXssSinks(tree: Tree, file: string): SinkMatch[] {
             severity: "high",
             title: "XSS risk: innerHTML/outerHTML assignment",
             explanation,
-            fixPrompt: `${fixPrompt} Occorrenza in ${file}:${lineOf(node)}.`,
+            fixPrompt: `${fixPrompt} Occurrence at ${file}:${lineOf(node)}.`,
             file,
             line: lineOf(node),
             column: colOf(node),
@@ -66,7 +66,7 @@ export function findJsXssSinks(tree: Tree, file: string): SinkMatch[] {
             severity: "high",
             title: "XSS risk: document.write",
             explanation,
-            fixPrompt: `${fixPrompt} Occorrenza in ${file}:${lineOf(node)}.`,
+            fixPrompt: `${fixPrompt} Occurrence at ${file}:${lineOf(node)}.`,
             file,
             line: lineOf(node),
             column: colOf(node),
@@ -83,7 +83,7 @@ export function findJsXssSinks(tree: Tree, file: string): SinkMatch[] {
             severity: "high",
             title: "XSS risk: document.writeln",
             explanation,
-            fixPrompt: `${fixPrompt} Occorrenza in ${file}:${lineOf(node)}.`,
+            fixPrompt: `${fixPrompt} Occurrence at ${file}:${lineOf(node)}.`,
             file,
             line: lineOf(node),
             column: colOf(node),
@@ -105,7 +105,7 @@ export function findJsXssSinks(tree: Tree, file: string): SinkMatch[] {
           severity: "high",
           title: "XSS risk: dangerouslySetInnerHTML",
           explanation,
-          fixPrompt: `${fixPrompt} Occorrenza in ${file}:${lineOf(node)}.`,
+          fixPrompt: `${fixPrompt} Occurrence at ${file}:${lineOf(node)}.`,
           file,
           line: lineOf(node),
           column: colOf(node),

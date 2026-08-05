@@ -50,11 +50,11 @@ export async function runAiPresenceScan(
       id: "ai-presence:disclosure-md",
       detectorId: "ai-presence",
       severity: "info",
-      title: "AI_DISCLOSURE.md presente",
+      title: "AI_DISCLOSURE.md found",
       explanation:
-        `Il repo dichiara uso di AI via \`AI_DISCLOSURE.md\`. Utile per trasparenza; verifica che sia aggiornato.`,
+        `The repository discloses AI usage through \`AI_DISCLOSURE.md\`. This supports transparency; verify that it is up to date.`,
       fixPrompt:
-        `Rivedi AI_DISCLOSURE.md e assicurati che elenchi tool/modelli realmente usati. Non è un bug di sicurezza.`,
+        `Review AI_DISCLOSURE.md and ensure it lists the tools and models actually used. This is not a security vulnerability.`,
       file: "AI_DISCLOSURE.md",
       evidence: raw.slice(0, 80).replace(/\s+/g, " "),
       metadata: { source: "ai-disclosure-md" },
@@ -85,13 +85,13 @@ export async function runAiPresenceScan(
           id: `ai-presence:trailer:${hash(evidence)}`,
           detectorId: "ai-presence",
           severity: "info",
-          title: `Segnale AI in commit: ${evidence.slice(0, 60)}`,
+          title: `AI signal in commit: ${evidence.slice(0, 60)}`,
           explanation:
-            `Trovato un trailer/marker esplicito di tooling AI nella history git. ` +
-            `Indica presenza di codice assistito da AI; non implica automaticamente bug, ma va rivisto prima della pubblicazione.`,
+            `An explicit AI-tooling trailer or marker was found in Git history. ` +
+            `It indicates AI-assisted code; it does not automatically imply a bug, but the code should be reviewed before shipping.`,
           fixPrompt:
-            `Assicurati che le parti generate dall'AI indicate da questo marker siano state riviste da un umano. ` +
-            `Preferisci provenance Agent Trace / SPDX per tracciabilità a livello di riga.`,
+            `Ensure the AI-generated sections referenced by this marker have been reviewed by a human. ` +
+            `Prefer Agent Trace or SPDX provenance for line-level traceability.`,
           evidence,
           metadata: { source: "git-trailer" },
         });
@@ -123,12 +123,12 @@ export async function runAiPresenceScan(
       id: `ai-presence:file:${rel}:${hash(m[0])}`,
       detectorId: "ai-presence",
       severity: "info",
-      title: `Marker AI esplicito in ${rel}`,
+      title: `Explicit AI marker in ${rel}`,
       explanation:
-        `Il file dichiara esplicitamente generazione/assistenza AI (\`${m[0]}\`). ` +
-        `È un dato di trasparenza, non una vulnerabilità e non riduce il Trust Score.`,
+        `The file explicitly discloses AI generation or assistance (\`${m[0]}\`). ` +
+        `This is transparency metadata, not a vulnerability, and it does not reduce the Trust Score.`,
       fixPrompt:
-        `Rivedi ${rel} con attenzione (sicurezza, edge case, segreti). Aggiorna provenance se usi Agent Trace.`,
+        `Review ${rel} carefully for security issues, edge cases, and secrets. Update provenance if you use Agent Trace.`,
       file: rel,
       line,
       evidence: m[0].trim(),

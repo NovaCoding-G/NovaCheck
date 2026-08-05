@@ -61,7 +61,7 @@ export function findingsFromAttributions(
     const severity = severityForLines(lines);
     const rangeLabel = formatRanges(unreviewed);
     const modelNote =
-      models.length > 0 ? ` Modelli: ${models.join(", ")}.` : "";
+      models.length > 0 ? ` Models: ${models.join(", ")}.` : "";
     const sourcesUsed = [
       ...new Set(ranges.map((r) => r.source)),
     ].join(", ");
@@ -70,20 +70,20 @@ export function findingsFromAttributions(
       id: `ai-unreviewed:${file}:${unreviewed[0]!.start}-${unreviewed[unreviewed.length - 1]!.end}`,
       detectorId: "ai-unreviewed",
       severity,
-      title: `${lines} righe AI senza tocco umano: ${file}`,
+      title: `${lines} AI-authored lines without human review: ${file}`,
       explanation:
-        `La provenance (${sourcesUsed}) attribuisce all'AI le righe ${rangeLabel} in \`${file}\`, ` +
-        `e nessun range successivo le marca come human/mixed.${modelNote} ` +
-        `Codice AI mai rivisto da un umano è la causa tipica di bug sottili, segreti leftover e sink pericolosi ` +
-        `che sfuggono prima della pubblicazione.`,
+        `Provenance (${sourcesUsed}) attributes lines ${rangeLabel} in \`${file}\` to AI, ` +
+        `and no later range marks them as human or mixed.${modelNote} ` +
+        `AI code that has never been reviewed by a human is a common source of subtle bugs, leftover secrets, ` +
+        `and dangerous sinks that escape before shipping.`,
       fixPrompt:
-        `Rivedi manualmente le righe ${rangeLabel} in ${file} (provenance: AI, non ancora human/mixed). ` +
-        `Controlla correttezza, sicurezza e edge case. Dopo la review, aggiorna la provenance ` +
-        `(es. Agent Trace con contributor human/mixed sulle righe toccate) oppure applica le modifiche necessarie. ` +
-        `Non pubblicare codice AI non letto.`,
+        `Manually review lines ${rangeLabel} in ${file} (provenance: AI, not yet human/mixed). ` +
+        `Check correctness, security, and edge cases. After review, update provenance ` +
+        `(for example Agent Trace with a human/mixed contributor on reviewed lines) or apply the necessary changes. ` +
+        `Do not ship unread AI-generated code.`,
       file,
       line: unreviewed[0]!.start,
-      evidence: `L${rangeLabel} (${lines} righe)`,
+      evidence: `L${rangeLabel} (${lines} lines)`,
       metadata: {
         engine: sourcesUsed,
         provenanceSources,

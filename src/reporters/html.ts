@@ -33,12 +33,12 @@ export function formatHtmlReport(
     counts.critical > 0 ||
     result.trustScore < minimumScore ||
     severityGateFailed
-      ? { label: "Bloccato", className: "blocked" }
+      ? { label: "Blocked", className: "blocked" }
       : counts.high > 0 || counts.medium > 0
-        ? { label: "Da rivedere", className: "review" }
-        : { label: "Pronto", className: "ready" };
+        ? { label: "Review required", className: "review" }
+        : { label: "Ready", className: "ready" };
   const badgeMd = formatBadgeMarkdown(result);
-  const scanned = new Date(result.scannedAt).toLocaleString("it-IT");
+  const scanned = new Date(result.scannedAt).toLocaleString("en-US");
 
   const allHtml = result.findings
     .map(
@@ -52,19 +52,19 @@ export function formatHtmlReport(
           </div>
         </div>
         <details ${index < 5 && f.severity !== "info" ? "open" : ""}>
-          <summary>Dettagli e correzione</summary>
+          <summary>Details and remediation</summary>
           <div class="finding-body">
-            <h4>Perché è un rischio</h4>
+            <h4>Why this is a risk</h4>
             <p>${esc(f.explanation)}</p>
             ${
               f.evidence
-                ? `<h4>Evidenza</h4><code class="evidence">${esc(f.evidence)}</code>`
+                ? `<h4>Evidence</h4><code class="evidence">${esc(f.evidence)}</code>`
                 : ""
             }
             <div class="fix">
               <div class="fix-head">
-                <h4>Correzione consigliata</h4>
-                <button type="button" class="copy" data-copy="fix-${index}">Copia prompt</button>
+                <h4>Recommended fix</h4>
+                <button type="button" class="copy" data-copy="fix-${index}">Copy prompt</button>
               </div>
               <pre id="fix-${index}">${esc(f.fixPrompt)}</pre>
             </div>
@@ -91,15 +91,15 @@ export function formatHtmlReport(
 
   const nextAction =
     counts.critical > 0
-      ? `Correggi i ${counts.critical} finding critical prima di pubblicare.`
+      ? `Fix the ${counts.critical} critical ${counts.critical === 1 ? "finding" : "findings"} before shipping.`
       : counts.high > 0
-        ? `Rivedi i ${counts.high} finding high prima del merge.`
+        ? `Review the ${counts.high} high-severity ${counts.high === 1 ? "finding" : "findings"} before merging.`
         : actionable.length > 0
-          ? "Valuta i finding medium e low, quindi documenta i rischi accettati."
-          : "Nessuna correzione obbligatoria. Mantieni NovaCheck nella CI.";
+          ? "Review medium and low findings, then document any accepted risks."
+          : "No mandatory fixes. Keep NovaCheck enabled in CI.";
 
   return `<!DOCTYPE html>
-<html lang="it">
+<html lang="en">
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
@@ -299,11 +299,11 @@ export function formatHtmlReport(
   </style>
 </head>
 <body>
-  <a class="skip-link" href="#findings">Vai ai finding</a>
+  <a class="skip-link" href="#findings">Skip to findings</a>
   <header class="topbar">
     <div class="topbar-inner">
       <div class="brand">NovaCheck</div>
-      <div class="privacy">Report locale · nessun codice inviato al cloud</div>
+      <div class="privacy">Local report · no source code sent to the cloud</div>
     </div>
   </header>
   <main>
@@ -311,20 +311,20 @@ export function formatHtmlReport(
     <p class="sub">${esc(result.rootDir)} · ${esc(scanned)}</p>
 
     <section class="summary" aria-labelledby="summary-title">
-      <div class="score" aria-label="Trust Score ${result.trustScore} su 100">
+      <div class="score" aria-label="Trust Score ${result.trustScore} out of 100">
         <strong>${result.trustScore}</strong>
         <span>Trust Score / 100</span>
       </div>
       <div class="summary-main">
         <div class="status ${status.className}">${status.label}</div>
-        <h2 id="summary-title" style="margin:.35rem 0 0">${actionable.length} ${actionable.length === 1 ? "rischio" : "rischi"} da valutare</h2>
+        <h2 id="summary-title" style="margin:.35rem 0 0">${actionable.length} ${actionable.length === 1 ? "risk" : "risks"} to review</h2>
         <progress max="100" value="${result.trustScore}">${result.trustScore}%</progress>
-        <div class="summary-meta">${esc(band.label)} · ${result.detectorsRun.length} controlli · ${result.durationMs}ms · ${counts.info} ${counts.info === 1 ? "segnale informativo" : "segnali informativi"}</div>
-        <div class="next"><strong>Prossimo passo:</strong> ${esc(nextAction)}</div>
+        <div class="summary-meta">${esc(band.label)} · ${result.detectorsRun.length} checks · ${result.durationMs}ms · ${counts.info} informational ${counts.info === 1 ? "signal" : "signals"}</div>
+        <div class="next"><strong>Next step:</strong> ${esc(nextAction)}</div>
       </div>
     </section>
 
-    <section class="metrics" aria-label="Riepilogo severità">
+    <section class="metrics" aria-label="Severity summary">
       ${(["critical", "high", "medium", "low", "info"] as Severity[])
         .map(
           (severity) =>
@@ -337,31 +337,31 @@ export function formatHtmlReport(
       <h2 id="findings-title">Finding</h2>
       ${
         result.findings.length > 0
-          ? `<div class="controls" aria-label="Filtra finding">
-              <button type="button" class="filter" data-filter="all" aria-pressed="true">Tutti <span>${result.findings.length}</span></button>
+          ? `<div class="controls" aria-label="Filter findings">
+              <button type="button" class="filter" data-filter="all" aria-pressed="true">All <span>${result.findings.length}</span></button>
               ${filters}
             </div>
             <div id="finding-list">${allHtml}</div>`
-          : `<div class="empty"><strong>Nessun rischio ad alta confidenza.</strong><br/>Il punteggio non sostituisce test, code review e threat modeling.</div>`
+          : `<div class="empty"><strong>No high-confidence risks detected.</strong><br/>The score does not replace tests, code review, or threat modeling.</div>`
       }
     </section>
 
     ${
       skips
         ? `<details class="coverage">
-             <summary>Copertura parziale: ${result.detectorsSkipped.length} controlli saltati</summary>
+             <summary>Partial coverage: ${result.detectorsSkipped.length} ${result.detectorsSkipped.length === 1 ? "check was" : "checks were"} skipped</summary>
              ${skips}
            </details>`
         : ""
     }
 
     <details class="badge-box">
-      <summary><strong>Badge per il README</strong></summary>
-      <p class="sub">Incolla questo snippet nel tuo README:</p>
+      <summary><strong>README badge</strong></summary>
+      <p class="sub">Paste this snippet into your README:</p>
       <code>${esc(badgeMd)}</code>
     </details>
 
-    <footer>Generato da NovaCheck · Il Trust Score indica segnali rilevati, non garantisce assenza di vulnerabilità.</footer>
+    <footer>Generated by NovaCheck · The Trust Score reflects detected signals and does not guarantee the absence of vulnerabilities.</footer>
   </main>
   <script>
     document.querySelectorAll(".filter").forEach((button) => {
@@ -397,7 +397,7 @@ export function formatHtmlReport(
           return;
         }
         const previous = button.textContent;
-        button.textContent = "Copiato";
+        button.textContent = "Copied";
         setTimeout(() => { button.textContent = previous; }, 1400);
       });
     });

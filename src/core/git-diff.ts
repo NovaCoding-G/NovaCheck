@@ -21,7 +21,7 @@ export async function getChangedFiles(
   const committed = await gitLines(
     rootDir,
     ["diff", "--name-only", "--diff-filter=ACMR", `${base}...HEAD`],
-    `Impossibile confrontare con "${base}". Verifica che il ref esista e, in CI, usa checkout con fetch-depth: 0.`,
+    `Unable to compare against "${base}". Verify that the ref exists and use checkout with fetch-depth: 0 in CI.`,
   );
   const unstaged = await gitLines(rootDir, [
     "diff",
@@ -89,7 +89,7 @@ async function assertGitRepository(rootDir: string): Promise<void> {
     if (stdout.trim() !== "true") throw new Error("not a work tree");
   } catch {
     throw new Error(
-      `--changed richiede un repository Git: ${rootDir}. Esegui "git init" o rimuovi --changed.`,
+      `--changed requires a Git repository: ${rootDir}. Run "git init" or remove --changed.`,
     );
   }
 }

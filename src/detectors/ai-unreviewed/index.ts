@@ -16,14 +16,14 @@ export { mergeRanges, subtractRanges, rangeLineCount } from "./ranges.ts";
 export function createAiUnreviewedDetector(): Detector {
   return {
     id: "ai-unreviewed",
-    name: "Righe AI non riviste",
+    name: "Unreviewed AI-authored lines",
     description:
-      "Usa provenance esistente (Agent Trace, SPDX-AI-Disclosure) per evidenziare codice AI mai toccato da un umano. Se manca, salta.",
+      "Uses existing provenance (Agent Trace, SPDX-AI-Disclosure) to identify AI-authored code never touched by a human. Skips when provenance is absent.",
     async run(ctx: ScanContext): Promise<Finding[]> {
       const result = await runAiUnreviewedScan(ctx.rootDir);
       ctx.recordStats({
         detectorId: "ai-unreviewed",
-        name: "Righe AI non riviste",
+        name: "Unreviewed AI-authored lines",
         filesReceived: result.filesReceived,
         filesAnalyzed: result.filesAnalyzed,
         discoveryPatterns: result.discoveryPatterns,

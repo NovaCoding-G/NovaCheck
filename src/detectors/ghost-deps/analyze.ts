@@ -61,8 +61,8 @@ function formatResolvers(resolution: ResolutionResult): string {
       ? resolution.resolversSkipped
           .map((s) => `${s.resolver} (${s.reason})`)
           .join("; ")
-      : "nessuno";
-  return `Resolver applicati: ${applied}. Resolver saltati: ${skipped}.`;
+      : "none";
+  return `Resolvers applied: ${applied}. Resolvers skipped: ${skipped}.`;
 }
 
 function findingBase(
@@ -131,13 +131,13 @@ export function analyzePackage(
           pkg,
           "ambiguous-blind",
           "high",
-          `Specificatore ambiguo (alias non risolto): ${pkg.name}`,
-          `Non è stato possibile verificare \`${pkg.name}\` sul registry e il resolver è cieco ` +
-            `su config di alias/bundler. Possibile alias non risolto — verifica prima di trattarlo come dipendenza esterna.`,
-          `Verifica se "${pkg.name}" in ${pkg.file}` +
+          `Ambiguous specifier (unresolved alias): ${pkg.name}`,
+          `NovaCheck could not verify \`${pkg.name}\` on the registry, and the resolver cannot inspect ` +
+            `all alias/bundler configuration. It may be an unresolved alias; verify it before treating it as an external dependency.`,
+          `Check whether "${pkg.name}" in ${pkg.file}` +
             (pkg.line ? `:${pkg.line}` : "") +
-            ` è un alias locale (tsconfig paths, vite/webpack resolve.alias, workspace) oppure un pacchetto esterno. ` +
-            `Se è un alias, non aggiungerlo al manifest; se è esterno, conferma il nome corretto sul registry.`,
+            ` is a local alias (tsconfig paths, Vite/Webpack resolve.alias, workspace) or an external package. ` +
+            `If it is an alias, do not add it to the manifest; if external, confirm the exact registry name.`,
           pkg.name,
           { blind: true },
         ),
@@ -148,7 +148,7 @@ export function analyzePackage(
 
   if (info.exists === false) {
     const whyTypo = typosquatOf
-      ? ` Il nome è anche molto simile a \`${typosquatOf}\`, un pacchetto popolare: tipico pattern di slopsquatting / typosquatting.`
+      ? ` The name is also very similar to the popular package \`${typosquatOf}\`, a typical slopsquatting or typosquatting pattern.`
       : "";
 
     // Blind → HIGH (possible unresolved alias). High-confidence external → CRITICAL.
@@ -157,7 +157,7 @@ export function analyzePackage(
       typosquatOf || !blind ? "critical" : "high";
 
     const blindNote = blind
-      ? " Possibile alias non risolto — verifica (il resolver non ha potuto escludere alias/bundler)."
+      ? " This may be an unresolved alias; the resolver could not rule out alias/bundler configuration."
       : "";
 
     const kind = typosquatOf
@@ -171,20 +171,20 @@ export function analyzePackage(
         pkg,
         kind,
         severity,
-        `Pacchetto inesistente su ${registry}: ${pkg.name}`,
-        `Il pacchetto \`${pkg.name}\` risulta dichiarato o importato, ma non esiste su ${registry}. ` +
-          `Nei progetti generati dall'AI questo spesso indica un'allucinazione (slopsquatting): ` +
-          `un nome inventato che un attaccante può registrare e riempire di malware.${whyTypo}${blindNote}`,
-        `Nel progetto, il pacchetto "${pkg.name}" (${registry}) non esiste sul registry. ` +
-          `Trova ogni riferimento in ${pkg.file}` +
-          (pkg.line ? ` (riga ${pkg.line})` : "") +
-          ` e nei manifest. ` +
+        `Package does not exist on ${registry}: ${pkg.name}`,
+        `The package \`${pkg.name}\` is declared or imported but does not exist on ${registry}. ` +
+          `In AI-generated projects this often indicates a hallucinated dependency (slopsquatting): ` +
+          `an invented name that an attacker could register and fill with malware.${whyTypo}${blindNote}`,
+        `The package "${pkg.name}" (${registry}) does not exist on the registry. ` +
+          `Find every reference in ${pkg.file}` +
+          (pkg.line ? ` (line ${pkg.line})` : "") +
+          ` and in manifests. ` +
           (blind
-            ? `Prima di tutto verifica se è un alias locale (tsconfig paths, vite/webpack resolve.alias, workspace). `
+            ? `First verify whether it is a local alias (tsconfig paths, Vite/Webpack resolve.alias, workspace). `
             : "") +
-          `Sostituiscilo con il pacchetto corretto e mantenuto` +
-          (typosquatOf ? ` (forse intendevi "${typosquatOf}")` : "") +
-          `, aggiorna le dipendenze e verifica che build/test passino. Non pubblicare finché il nome fantasma non è rimosso.`,
+          `Replace it with the correct maintained package` +
+          (typosquatOf ? ` (possibly "${typosquatOf}")` : "") +
+          `, update dependencies, and verify that build and tests pass. Do not ship until the ghost package is removed.`,
         pkg.name,
         { typosquatOf, blind },
       ),
@@ -212,13 +212,13 @@ export function analyzePackage(
         pkg,
         "very-new",
         "medium",
-        `Pacchetto molto recente su ${registry}: ${pkg.name}`,
-        `"${pkg.name}" esiste su ${registry} da soli ~${Math.max(0, Math.floor(ageDays))} giorni. ` +
-          `I pacchetti creati da pochissimo sono un vettore comune dopo allucinazioni AI: ` +
-          `qualcuno registra il nome inventato e ci mette codice malevolo. Verifica maintainer, repo e download prima di fidarti.`,
-        `Il pacchetto "${pkg.name}" su ${registry} è stato pubblicato da meno di ${options.maxAgeDays} giorni. ` +
-          `Valuta se è intenzionale: controlla la pagina del registry, il repository e i maintainer. ` +
-          `Se non sei sicuro, sostituiscilo con un'alternativa matura e aggiorna ${pkg.file}.`,
+        `Very recent package on ${registry}: ${pkg.name}`,
+        `"${pkg.name}" has existed on ${registry} for only about ${Math.max(0, Math.floor(ageDays))} days. ` +
+          `Very new packages are a common follow-up to AI hallucinations: ` +
+          `someone registers an invented name and publishes malicious code. Verify maintainers, repository, and downloads before trusting it.`,
+        `The package "${pkg.name}" on ${registry} was published less than ${options.maxAgeDays} days ago. ` +
+          `Confirm this is intentional by checking the registry page, repository, and maintainers. ` +
+          `If uncertain, replace it with a mature alternative and update ${pkg.file}.`,
         pkg.name,
         { ageDays: Math.floor(ageDays), createdAt: info.createdAt?.toISOString() },
       ),
@@ -238,11 +238,11 @@ export function analyzePackage(
         pkg,
         "low-downloads",
         "low",
-        `Pochi download settimanali: ${pkg.name}`,
-        `"${pkg.name}" ha ~${info.weeklyDownloads} download nell'ultima settimana su npm e non è un pacchetto maturo. ` +
-          `Combinato con codice AI, i pacchetti poco usati e recenti meritano una verifica manuale del maintainer e del contenuto.`,
-        `Il pacchetto npm "${pkg.name}" ha meno di ${options.minWeeklyDownloads} download settimanali e ha meno di ${options.lowDownloadMaxAgeDays} giorni. ` +
-          `Conferma che sia il pacchetto giusto (non un typosquat), altrimenti sostituiscilo con l'alternativa popolare corretta e aggiorna ${pkg.file}.`,
+        `Low weekly downloads: ${pkg.name}`,
+        `"${pkg.name}" had about ${info.weeklyDownloads} npm downloads in the last week and is not a mature package. ` +
+          `When combined with AI-generated code, recent low-usage packages deserve manual review of their maintainers and contents.`,
+        `The npm package "${pkg.name}" has fewer than ${options.minWeeklyDownloads} weekly downloads and is less than ${options.lowDownloadMaxAgeDays} days old. ` +
+          `Confirm it is the intended package and not a typosquat; otherwise replace it with the correct popular alternative and update ${pkg.file}.`,
         pkg.name,
         { weeklyDownloads: info.weeklyDownloads, ageDays: Math.floor(ageDays) },
       ),
@@ -259,13 +259,13 @@ export function analyzePackage(
           pkg,
           "typosquat",
           "critical",
-          `Nome sospetto (simile a ${typosquatOf}): ${pkg.name}`,
-          `"${pkg.name}" è molto simile al pacchetto popolare \`${typosquatOf}\` e ha segnali deboli ` +
-            `(pochi download e/o età recente). È il classico profilo di typosquatting / slopsquatting ` +
-            `sfruttato quando l'AI "quasi" ricorda un nome famoso.`,
-          `Il pacchetto "${pkg.name}" assomiglia a "${typosquatOf}" ma non è quello. ` +
-            `Verifica se è un errore di digitazione/allucinazione. Se sì, sostituisci tutte le occorrenze con "${typosquatOf}" ` +
-            `in ${pkg.file} e nei manifest, poi reinstalla le dipendenze.`,
+          `Suspicious name (similar to ${typosquatOf}): ${pkg.name}`,
+          `"${pkg.name}" is very similar to the popular package \`${typosquatOf}\` and has weak trust signals ` +
+            `(low downloads and/or recent age). This is the classic typosquatting or slopsquatting profile ` +
+            `exploited when AI almost remembers a well-known package name.`,
+          `The package "${pkg.name}" resembles "${typosquatOf}" but is not the same package. ` +
+            `Verify whether this is a typo or hallucination. If so, replace every occurrence with "${typosquatOf}" ` +
+            `in ${pkg.file} and manifests, then reinstall dependencies.`,
           pkg.name,
           { typosquatOf, weeklyDownloads: info.weeklyDownloads, ageDays },
         ),

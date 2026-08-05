@@ -6,14 +6,14 @@ export { runInsecureCryptoScan } from "./scan.ts";
 export function createInsecureCryptoDetector(): Detector {
   return {
     id: "insecure-crypto",
-    name: "Crittografia / casualità insicura",
+    name: "Insecure cryptography / randomness",
     description:
-      "MD5/SHA1, createCipher deprecato, Math.random/random per token e segreti.",
+      "MD5/SHA1, deprecated createCipher, and Math.random/random used for tokens or secrets.",
     async run(ctx: ScanContext): Promise<Finding[]> {
       const result = await runInsecureCryptoScan(ctx.rootDir);
       ctx.recordStats({
         detectorId: "insecure-crypto",
-        name: "Crittografia / casualità insicura",
+        name: "Insecure cryptography / randomness",
         filesReceived: result.filesReceived,
         filesAnalyzed: result.filesAnalyzed,
         discoveryPatterns: result.discoveryPatterns,

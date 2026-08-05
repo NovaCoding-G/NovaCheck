@@ -45,9 +45,9 @@ export function createGhostDepsDetector(
 ): Detector {
   return {
     id: "ghost-deps",
-    name: "Dipendenze fantasma / slopsquatting",
+    name: "Ghost dependencies / slopsquatting",
     description:
-      "Verifica che i pacchetti dichiarati o importati esistano sui registry e non siano sospetti (nuovi, poco scaricati, typosquat).",
+      "Checks that declared or imported packages exist on registries and are not suspiciously new, rarely downloaded, or typosquatted.",
     async run(ctx: ScanContext): Promise<Finding[]> {
       const registry =
         options.registry ??
@@ -64,7 +64,7 @@ export function createGhostDepsDetector(
       );
       ctx.recordStats({
         detectorId: "ghost-deps",
-        name: "Dipendenze fantasma / slopsquatting",
+        name: "Ghost dependencies / slopsquatting",
         filesReceived: result.filesReceived,
         filesAnalyzed: result.filesAnalyzed,
         discoveryPatterns: result.discoveryPatterns,

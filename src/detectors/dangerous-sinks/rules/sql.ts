@@ -34,13 +34,13 @@ const PY_SQL_FNS = new Set(["execute", "executemany", "executescript"]);
 function explainSql(): { explanation: string; fixPrompt: string } {
   return {
     explanation:
-      `Query SQL costruita per concatenazione/interpolazione. ` +
-      `Un input non sanitizzato può alterare la query (SQL injection): lettura/modifica di dati, ` +
-      `bypass login, o peggio. L'AI spesso "risolve" filtri dinamici concatenando stringhe invece di usare parametri.`,
+      `SQL query built through concatenation or interpolation. ` +
+      `Unsanitized input can modify the query (SQL injection), enabling data access or modification, ` +
+      `authentication bypass, or worse. AI often implements dynamic filters by concatenating strings instead of using parameters.`,
     fixPrompt:
-      `Riscrivi la query con parametri bound (placeholder $1/?/:name) e passa i valori separatamente. ` +
-      `Evita f-string, template literal interpolati e "+" su SQL. ` +
-      `Per Prisma usa $queryRaw con frammenti Prisma.sql, mai $queryRawUnsafe con input utente.`,
+      `Rewrite the query with bound parameters (placeholders such as $1, ?, or :name) and pass values separately. ` +
+      `Avoid f-strings, interpolated template literals, and string concatenation in SQL. ` +
+      `With Prisma, use $queryRaw with Prisma.sql fragments and never pass user input to $queryRawUnsafe.`,
   };
 }
 
@@ -101,7 +101,7 @@ export function findJsSqlSinks(tree: Tree, file: string): SinkMatch[] {
       severity: "critical",
       title: `SQL injection risk: ${jsCalleeText(node)}`,
       explanation,
-      fixPrompt: `${fixPrompt} Occorrenza in ${file}:${lineOf(node)}.`,
+      fixPrompt: `${fixPrompt} Occurrence at ${file}:${lineOf(node)}.`,
       file,
       line: lineOf(node),
       column: colOf(node),
@@ -149,7 +149,7 @@ export function findPySqlSinks(tree: Tree, file: string): SinkMatch[] {
       severity: "critical",
       title: `SQL injection risk: ${name}`,
       explanation,
-      fixPrompt: `${fixPrompt} Occorrenza in ${file}:${lineOf(node)}.`,
+      fixPrompt: `${fixPrompt} Occurrence at ${file}:${lineOf(node)}.`,
       file,
       line: lineOf(node),
       column: colOf(node),
