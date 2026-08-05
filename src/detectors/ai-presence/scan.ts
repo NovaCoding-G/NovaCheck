@@ -63,42 +63,45 @@ export async function runAiPresenceScan(
     // absent
   }
 
-  // Git commit trailers (explicit only)
-  try {
-    const { stdout: out } = await execFileAsync(
-      "git",
-      ["-C", rootDir, "log", "-n", "50", "--format=%B---END---"],
-      { encoding: "utf8", maxBuffer: 2 * 1024 * 1024 },
-    );
-    received++;
-    analyzed++;
-    const commits = out.split("---END---");
-    const seen = new Set<string>();
-    for (const body of commits) {
-      const re = new RegExp(TRAILER_RE.source, "gim");
-      let m: RegExpExecArray | null;
-      while ((m = re.exec(body)) !== null) {
-        const evidence = m[0].trim();
-        if (seen.has(evidence)) continue;
-        seen.add(evidence);
-        findings.push({
-          id: `ai-presence:trailer:${hash(evidence)}`,
-          detectorId: "ai-presence",
-          severity: "info",
-          title: `AI signal in commit: ${evidence.slice(0, 60)}`,
-          explanation:
-            `An explicit AI-tooling trailer or marker was found in Git history. ` +
-            `It indicates AI-assisted code; it does not automatically imply a bug, but the code should be reviewed before shipping.`,
-          fixPrompt:
-            `Ensure the AI-generated sections referenced by this marker have been reviewed by a human. ` +
-            `Prefer Agent Trace or SPDX provenance for line-level traceability.`,
-          evidence,
-          metadata: { source: "git-trailer" },
-        });
+  // Git commit trailers (explicit only). Only when scanning the Git toplevel,
+  // so nested package/fixture roots do not inherit parent-repo commit metadata.
+  if (await isGitToplevel(rootDir)) {
+    try {
+      const { stdout: out } = await execFileAsync(
+        "git",
+        ["-C", rootDir, "log", "-n", "50", "--format=%B---END---"],
+        { encoding: "utf8", maxBuffer: 2 * 1024 * 1024 },
+      );
+      received++;
+      analyzed++;
+      const commits = out.split("---END---");
+      const seen = new Set<string>();
+      for (const body of commits) {
+        const re = new RegExp(TRAILER_RE.source, "gim");
+        let m: RegExpExecArray | null;
+        while ((m = re.exec(body)) !== null) {
+          const evidence = m[0].trim();
+          if (seen.has(evidence)) continue;
+          seen.add(evidence);
+          findings.push({
+            id: `ai-presence:trailer:${hash(evidence)}`,
+            detectorId: "ai-presence",
+            severity: "info",
+            title: `AI signal in commit: ${evidence.slice(0, 60)}`,
+            explanation:
+              `An explicit AI-tooling trailer or marker was found in Git history. ` +
+              `It indicates AI-assisted code; it does not automatically imply a bug, but the code should be reviewed before shipping.`,
+            fixPrompt:
+              `Ensure the AI-generated sections referenced by this marker have been reviewed by a human. ` +
+              `Prefer Agent Trace or SPDX provenance for line-level traceability.`,
+            evidence,
+            metadata: { source: "git-trailer" },
+          });
+        }
       }
+    } catch {
+      // git missing or log unavailable
     }
-  } catch {
-    // not a git repo / git missing
   }
 
   // File header markers (first 2KB)
@@ -149,4 +152,19 @@ function hash(s: string): string {
   let h = 0;
   for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0;
   return Math.abs(h).toString(36);
+}
+
+async function isGitToplevel(rootDir: string): Promise<boolean> {
+  try {
+    const { stdout } = await execFileAsync(
+      "git",
+      ["-C", rootDir, "rev-parse", "--show-toplevel"],
+      { encoding: "utf8" },
+    );
+    const top = stdout.trim().replaceAll("\\", "/").replace(/\/+$/, "");
+    const root = rootDir.replaceAll("\\", "/").replace(/\/+$/, "");
+    return top.length > 0 && top.toLowerCase() === root.toLowerCase();
+  } catch {
+    return false;
+  }
 }

@@ -145,6 +145,10 @@ describe("ai-presence", () => {
       rootDir: join(FIX, "ai-unreviewed/empty-project"),
     });
     const findings = await detector.run(ctx);
+    expect(findings.some((f) => f.metadata?.source === "file-marker")).toBe(
+      false,
+    );
+    expect(findings.some((f) => f.file?.includes("regex.ts"))).toBe(false);
     expect(findings).toHaveLength(0);
   });
 });
