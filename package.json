@@ -15,7 +15,7 @@
     "email": "novacodingg@gmail.com"
   },
   "bin": {
-    "novacheck": "./dist/cli.js"
+    "novacheck": "dist/cli.js"
   },
   "scripts": {
     "dev": "bun run src/cli.ts",
