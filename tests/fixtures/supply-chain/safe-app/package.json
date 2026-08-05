@@ -1,0 +1,6 @@
+{
+  "name": "safe-scripts",
+  "scripts": {
+    "setup-tools": "npm install -g typescript"
+  }
+}

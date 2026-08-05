@@ -1,0 +1,12 @@
+{
+  "description": "Known-bad JS fixture: shell, SQL, CORS, TLS, eval, XSS",
+  "maxTrustScore": 99,
+  "mustInclude": [
+    { "detectorId": "dangerous-sinks", "severity": "critical", "kind": "shell" },
+    { "detectorId": "dangerous-sinks", "severity": "critical", "kind": "sql" },
+    { "detectorId": "dangerous-sinks", "severity": "high", "kind": "cors" },
+    { "detectorId": "dangerous-sinks", "severity": "critical", "kind": "tls" },
+    { "detectorId": "dangerous-sinks", "severity": "critical", "kind": "code-exec" },
+    { "detectorId": "dangerous-sinks", "severity": "high", "kind": "xss" }
+  ]
+}

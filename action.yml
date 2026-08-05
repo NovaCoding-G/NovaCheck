@@ -1,0 +1,78 @@
+name: NovaCheck
+description: Security and AI-provenance trust scan for pull requests
+author: NovaCoding-G
+branding:
+  icon: shield
+  color: green
+
+inputs:
+  path:
+    description: Project directory to scan
+    default: .
+  fail-below:
+    description: Fail when Trust Score is below this value
+    default: "70"
+  offline:
+    description: Disable package registry network requests
+    default: "false"
+  changed:
+    description: Evaluate only files changed from the base ref
+    default: "true"
+  base:
+    description: Git ref used by changed mode
+    default: ""
+  upload-sarif:
+    description: Upload findings to GitHub Code Scanning
+    default: "true"
+
+runs:
+  using: composite
+  steps:
+    - name: Set up Bun
+      uses: oven-sh/setup-bun@v2
+      with:
+        bun-version: latest
+
+    - name: Install NovaCheck
+      shell: bash
+      run: bun install --cwd "$GITHUB_ACTION_PATH" --frozen-lockfile
+
+    - name: Run NovaCheck
+      id: scan
+      continue-on-error: true
+      shell: bash
+      env:
+        INPUT_PATH: ${{ inputs.path }}
+        INPUT_FAIL_BELOW: ${{ inputs.fail-below }}
+        INPUT_OFFLINE: ${{ inputs.offline }}
+        INPUT_CHANGED: ${{ inputs.changed }}
+        INPUT_BASE: ${{ inputs.base }}
+      run: |
+        args=("$GITHUB_WORKSPACE/$INPUT_PATH" "--sarif" "$GITHUB_WORKSPACE/.novacheck/novacheck-results.sarif" "--no-html" "--fail-below" "$INPUT_FAIL_BELOW")
+        if [[ "$INPUT_OFFLINE" == "true" ]]; then
+          args+=("--offline")
+        fi
+        if [[ "$INPUT_CHANGED" == "true" ]]; then
+          args+=("--changed")
+          if [[ -n "$INPUT_BASE" ]]; then
+            args+=("$INPUT_BASE")
+          elif [[ -n "${GITHUB_BASE_REF:-}" ]]; then
+            args+=("origin/$GITHUB_BASE_REF")
+          fi
+        fi
+        bun run "$GITHUB_ACTION_PATH/src/cli.ts" "${args[@]}"
+
+    - name: Upload SARIF
+      if: >-
+        ${{ inputs.upload-sarif == 'true' &&
+            hashFiles('.novacheck/novacheck-results.sarif') != '' &&
+            (github.event_name != 'pull_request' ||
+             github.event.pull_request.head.repo.full_name == github.repository) }}
+      uses: github/codeql-action/upload-sarif@v3
+      with:
+        sarif_file: .novacheck/novacheck-results.sarif
+
+    - name: Enforce NovaCheck policy
+      if: ${{ steps.scan.outcome == 'failure' }}
+      shell: bash
+      run: exit 1

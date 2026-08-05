@@ -1,0 +1,10 @@
+{
+  "name": "fixture-alias",
+  "private": true,
+  "imports": {
+    "#lib/*": "./src/lib/*"
+  },
+  "dependencies": {
+    "react": "^19.0.0"
+  }
+}

@@ -1,0 +1,4 @@
+requests>=2.0
+django-restx==1.0.0
+# comment should be ignored
+-r other.txt

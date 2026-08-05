@@ -1,0 +1,7 @@
+minimumScore: 85
+failOn:
+  - critical
+ignore:
+  paths:
+    - tests/fixtures/**
+    - tests/detectors/secrets.test.ts

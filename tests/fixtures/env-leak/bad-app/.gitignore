@@ -1,0 +1,2 @@
+# no .env ignore here on purpose
+node_modules/

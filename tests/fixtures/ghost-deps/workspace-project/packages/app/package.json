@@ -1,0 +1,9 @@
+{
+  "name": "@acme/app",
+  "version": "0.0.1",
+  "private": true,
+  "dependencies": {
+    "@acme/ui": "*",
+    "left-padx": "^1.0.0"
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "description": "MD5, Math.random token, createCipher",
+  "maxTrustScore": 90,
+  "mustInclude": [
+    { "detectorId": "insecure-crypto", "severity": "critical" },
+    { "detectorId": "insecure-crypto", "severity": "high" }
+  ]
+}

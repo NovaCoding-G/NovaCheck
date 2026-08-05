@@ -1,0 +1,8 @@
+{
+  "description": "Lifecycle curl|bash + git+http dep",
+  "maxTrustScore": 80,
+  "mustInclude": [
+    { "detectorId": "supply-chain", "severity": "critical" },
+    { "detectorId": "supply-chain", "severity": "high" }
+  ]
+}

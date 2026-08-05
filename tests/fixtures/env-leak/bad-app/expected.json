@@ -1,0 +1,7 @@
+{
+  "description": "Unprotected .env must be detected without duplicating the secrets detector",
+  "maxTrustScore": 90,
+  "mustInclude": [
+    { "detectorId": "env-leak", "severity": "critical" }
+  ]
+}

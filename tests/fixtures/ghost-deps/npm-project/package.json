@@ -1,0 +1,13 @@
+{
+  "name": "fixture-npm-ghost",
+  "private": true,
+  "dependencies": {
+    "react": "^19.0.0",
+    "left-padx": "^1.0.0",
+    "lodas": "^4.17.21",
+    "brand-new-helper": "^0.0.1"
+  },
+  "devDependencies": {
+    "vite": "^6.0.0"
+  }
+}
