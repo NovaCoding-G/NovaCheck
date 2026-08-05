@@ -29,15 +29,23 @@ export async function runEnvLeakScan(
     const name = basename(file);
     return isEnvFamily(name) && !isTemplate(name);
   });
-  const gitRepo = await isGitRepository(rootDir);
+  // Use full Git ignore/tracking only when scanning the repository root.
+  // Nested scan roots (fixtures, package folders) fall back to local
+  // `.gitignore` for ignore rules, but still detect files already tracked.
+  const gitToplevel = await gitToplevelOf(rootDir);
+  const scanIsGitRoot =
+    gitToplevel !== undefined && pathsEqual(gitToplevel, rootDir);
 
   for (const abs of files) {
     const rel = toRel(rootDir, abs);
-    const status = gitRepo
+    const status = scanIsGitRoot
       ? await gitStatus(rootDir, rel)
       : {
           ignored: await fallbackIgnored(rootDir, rel),
-          tracked: false,
+          tracked:
+            gitToplevel !== undefined
+              ? await isTrackedUnder(gitToplevel, abs)
+              : false,
         };
     if (status.ignored && !status.tracked) continue;
 
@@ -69,17 +77,36 @@ export async function runEnvLeakScan(
   };
 }
 
-async function isGitRepository(rootDir: string): Promise<boolean> {
+async function gitToplevelOf(rootDir: string): Promise<string | undefined> {
   try {
     const { stdout } = await execFileAsync(
       "git",
-      ["-C", rootDir, "rev-parse", "--is-inside-work-tree"],
+      ["-C", rootDir, "rev-parse", "--show-toplevel"],
       { encoding: "utf8" },
     );
-    return stdout.trim() === "true";
+    const top = stdout.trim();
+    return top.length > 0 ? top : undefined;
   } catch {
-    return false;
+    return undefined;
   }
+}
+
+function pathsEqual(a: string, b: string): boolean {
+  const norm = (p: string) => p.replaceAll("\\", "/").replace(/\/+$/, "").toLowerCase();
+  return norm(a) === norm(b);
+}
+
+async function isTrackedUnder(
+  gitToplevel: string,
+  absFile: string,
+): Promise<boolean> {
+  const relFromTop = toRel(gitToplevel, absFile);
+  return gitCommandSucceeds(gitToplevel, [
+    "ls-files",
+    "--error-unmatch",
+    "--",
+    relFromTop,
+  ]);
 }
 
 async function gitStatus(
