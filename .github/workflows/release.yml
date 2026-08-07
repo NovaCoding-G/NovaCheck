@@ -26,8 +26,11 @@ jobs:
         env:
           RELEASE_TAG: ${{ github.event.release.tag_name }}
         run: |
+          set -euo pipefail
           git fetch origin main
-          tag_commit="$(git rev-list -n 1 -- "$RELEASE_TAG")"
+          # Resolve the tag to a commit before any repository code runs.
+          # Do not place "--" before the tag: git would treat it as a pathspec.
+          tag_commit="$(git rev-parse --verify "${RELEASE_TAG}^{commit}")"
           git merge-base --is-ancestor "$tag_commit" origin/main
 
       - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
