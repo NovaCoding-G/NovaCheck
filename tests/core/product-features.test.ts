@@ -254,6 +254,12 @@ describe("changed-file scope", () => {
               file: "package.json",
             },
             {
+              detectorId: "secrets",
+              code: "directory-failed",
+              message: "Changed source directory could not be enumerated.",
+              file: "src",
+            },
+            {
               detectorId: "global",
               code: "repository-failed",
               message: "Repository-wide analysis failed.",
@@ -263,9 +269,11 @@ describe("changed-file scope", () => {
       },
       new Set(["src/app.ts"]),
     );
-    expect(filtered.diagnostics.issues.map((issue) => issue.detectorId)).toEqual(
-      ["ghost-deps", "global"],
-    );
+    expect(filtered.diagnostics.issues.map((issue) => issue.code)).toEqual([
+      "lookup-failed",
+      "directory-failed",
+      "repository-failed",
+    ]);
     expect(filtered.diagnostics.incomplete).toBe(true);
   });
 });

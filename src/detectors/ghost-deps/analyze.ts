@@ -325,7 +325,7 @@ export async function runGhostDepsAnalysis(
   };
 
   const index = await buildProjectResolveIndex(rootDir);
-  const collected = await collectPackagesDetailed(rootDir);
+  const collected = await collectPackagesDetailed(rootDir, onIssue);
   const packages = resolvePackages(collected.packages, index);
   // Keep registry traffic bounded while avoiding one-request-at-a-time scans
   // on monorepos. Promise results retain package order for deterministic output.

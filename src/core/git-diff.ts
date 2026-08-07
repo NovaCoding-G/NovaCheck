@@ -68,7 +68,7 @@ export function filterResultToChangedFiles(
     (issue) =>
       !issue.file ||
       issue.file === "." ||
-      changedFiles.has(normalizePath(issue.file)),
+      pathAffectsChangedFile(issue.file, changedFiles),
   );
   const degradedDetectors = new Set(issues.map((issue) => issue.detectorId));
 
@@ -136,4 +136,21 @@ function normalizeFindingPath(rootDir: string, finding: Finding): string {
 
 function normalizePath(path: string): string {
   return path.replaceAll("\\", "/").replace(/^\.\//, "");
+}
+
+function pathAffectsChangedFile(
+  issuePath: string,
+  changedFiles: ReadonlySet<string>,
+): boolean {
+  const normalizedIssuePath = normalizePath(issuePath).replace(/\/+$/, "");
+  for (const changedFile of changedFiles) {
+    const normalizedChangedFile = normalizePath(changedFile);
+    if (
+      normalizedChangedFile === normalizedIssuePath ||
+      normalizedChangedFile.startsWith(`${normalizedIssuePath}/`)
+    ) {
+      return true;
+    }
+  }
+  return false;
 }

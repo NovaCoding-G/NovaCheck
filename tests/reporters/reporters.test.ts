@@ -115,6 +115,37 @@ describe("reporters", () => {
     expect(info).not.toContain("Priority risks");
   });
 
+  test("does not claim a clean result when analysis is incomplete", () => {
+    const base = fakeResult();
+    const incomplete = fakeResult({
+      trustScore: 100,
+      findings: [],
+      diagnostics: {
+        ...base.diagnostics,
+        incomplete: true,
+        issues: [
+          {
+            detectorId: "ghost-deps",
+            code: "registry-timeout",
+            message: "Registry lookup timed out.",
+            file: "package.json",
+          },
+        ],
+      },
+    });
+
+    const terminal = formatTerminalReport(incomplete);
+    const html = formatHtmlReport(incomplete);
+    expect(terminal).toContain(
+      "No risks detected in the analyzed inputs, but analysis is incomplete.",
+    );
+    expect(html).toContain(
+      "No risks detected in the analyzed inputs, but analysis is incomplete.",
+    );
+    expect(terminal).not.toContain("No high-confidence risks detected.");
+    expect(html).not.toContain("No high-confidence risks detected.");
+  });
+
   test("uses the configured policy threshold for status", () => {
     const passing = fakeResult({ trustScore: 88, findings: [] });
     expect(

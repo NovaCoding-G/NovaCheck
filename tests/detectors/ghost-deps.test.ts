@@ -4,6 +4,7 @@ import {
   analyzePackage,
   buildProjectResolveIndex,
   collectPackages,
+  collectPackagesDetailed,
   createGhostDepsDetector,
   levenshtein,
   matchPathPattern,
@@ -108,6 +109,19 @@ describe("heuristics", () => {
 });
 
 describe("collectPackages", () => {
+  test("reports traversal failures instead of treating them as complete", async () => {
+    const issues: Array<{ code: string; file: string }> = [];
+    const collected = await collectPackagesDetailed(
+      join(FIXTURES, "does-not-exist"),
+      (issue) => issues.push({ code: issue.code, file: issue.file }),
+    );
+
+    expect(collected.packages).toHaveLength(0);
+    expect(issues).toEqual([
+      { code: "ghost-deps-walk-directory-failed", file: "." },
+    ]);
+  });
+
   test("reads npm manifests and imports", async () => {
     const pkgs = await collectPackages(join(FIXTURES, "npm-project"));
     const names = pkgs.map((p) => p.name).sort();

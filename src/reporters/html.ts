@@ -358,7 +358,9 @@ export function formatHtmlReport(
               ${filters}
             </div>
             <div id="finding-list">${allHtml}</div>`
-          : `<div class="empty"><strong>No high-confidence risks detected.</strong><br/>The score does not replace tests, code review, or threat modeling.</div>`
+          : result.diagnostics.incomplete
+            ? `<div class="empty"><strong>No risks detected in the analyzed inputs, but analysis is incomplete.</strong><br/>Resolve the incomplete checks before treating this result as verified.</div>`
+            : `<div class="empty"><strong>No high-confidence risks detected.</strong><br/>The score does not replace tests, code review, or threat modeling.</div>`
       }
     </section>
 

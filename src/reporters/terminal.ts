@@ -167,9 +167,15 @@ export function formatTerminalReport(
     });
   } else {
     lines.push("");
-    lines.push(
-      `${ansi.green}${ansi.bold}No high-confidence risks detected.${ansi.reset}`,
-    );
+    if (result.diagnostics.incomplete) {
+      lines.push(
+        `${ansi.yellow}${ansi.bold}No risks detected in the analyzed inputs, but analysis is incomplete.${ansi.reset}`,
+      );
+    } else {
+      lines.push(
+        `${ansi.green}${ansi.bold}No high-confidence risks detected.${ansi.reset}`,
+      );
+    }
   }
 
   const rest = actionable.length - top.length;
