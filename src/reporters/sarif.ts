@@ -20,11 +20,23 @@ export interface SarifReportOptions {
   };
 }
 
+/**
+ * GitHub Code Scanning requires every SARIF result to include at least one
+ * physical location. Findings without a file (e.g. git-trailer AI signals)
+ * stay in run properties instead of `results`.
+ */
 export function formatSarifReport(
   result: ScanResult,
   options: SarifReportOptions = {},
 ): string {
-  const rules = collectRules(result.findings);
+  const locatable: Finding[] = [];
+  const informationalSignals: Finding[] = [];
+  for (const finding of result.findings) {
+    if (hasLocatableFile(finding)) locatable.push(finding);
+    else informationalSignals.push(finding);
+  }
+
+  const rules = collectRules(locatable);
   const policyFailures = options.policyFailures ?? [];
   const policyPassed = policyFailures.length === 0;
   const report = {
@@ -54,7 +66,7 @@ export function formatSarifReport(
             },
           },
         ],
-        results: result.findings.map((finding) =>
+        results: locatable.map((finding) =>
           findingToSarif(finding, ruleIdFor(finding)),
         ),
         properties: {
@@ -67,11 +79,29 @@ export function formatSarifReport(
           minimumScore: options.minimumScore,
           failOn: options.failOn ?? [],
           scope: options.scope ?? { mode: "full" },
+          informationalSignals: informationalSignals.map(
+            summarizeInformationalSignal,
+          ),
         },
       },
     ],
   };
   return `${JSON.stringify(report, null, 2)}\n`;
+}
+
+function hasLocatableFile(finding: Finding): boolean {
+  return typeof finding.file === "string" && finding.file.trim().length > 0;
+}
+
+function summarizeInformationalSignal(finding: Finding): Record<string, unknown> {
+  return {
+    id: finding.id,
+    detectorId: finding.detectorId,
+    severity: finding.severity,
+    title: finding.title,
+    ...(finding.evidence ? { evidence: finding.evidence } : {}),
+    ...(finding.metadata ? { metadata: finding.metadata } : {}),
+  };
 }
 
 function collectRules(findings: Finding[]): Map<string, SarifRule> {
@@ -97,7 +127,8 @@ function collectRules(findings: Finding[]): Map<string, SarifRule> {
 }
 
 function findingToSarif(finding: Finding, ruleId: string): object {
-  const result: Record<string, unknown> = {
+  const file = finding.file!.replaceAll("\\", "/");
+  return {
     ruleId,
     level: sarifLevel(finding.severity),
     message: {
@@ -106,20 +137,11 @@ function findingToSarif(finding: Finding, ruleId: string): object {
     partialFingerprints: {
       novacheckFindingId: finding.id,
     },
-    properties: {
-      severity: finding.severity,
-      detectorId: finding.detectorId,
-      fixPrompt: finding.fixPrompt,
-      ...(finding.evidence ? { evidence: finding.evidence } : {}),
-    },
-  };
-
-  if (finding.file) {
-    result.locations = [
+    locations: [
       {
         physicalLocation: {
           artifactLocation: {
-            uri: finding.file.replaceAll("\\", "/"),
+            uri: file,
             uriBaseId: "%SRCROOT%",
           },
           region: {
@@ -128,9 +150,14 @@ function findingToSarif(finding: Finding, ruleId: string): object {
           },
         },
       },
-    ];
-  }
-  return result;
+    ],
+    properties: {
+      severity: finding.severity,
+      detectorId: finding.detectorId,
+      fixPrompt: finding.fixPrompt,
+      ...(finding.evidence ? { evidence: finding.evidence } : {}),
+    },
+  };
 }
 
 function ruleIdFor(finding: Finding): string {
