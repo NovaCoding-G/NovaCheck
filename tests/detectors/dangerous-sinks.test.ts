@@ -9,7 +9,7 @@ import { createScanContext } from "../../src/core/create-context.ts";
 
 const FIXTURES = join(import.meta.dir, "../fixtures/dangerous-sinks");
 
-/** Snippet vulnerabile solo per test del detector — non nella demo js-app. */
+/** Fixture snippet for detector tests — not part of the js-app demo. */
 const VULNERABLE_JS = `
 import { exec, spawn } from "node:child_process";
 import cors from "cors";

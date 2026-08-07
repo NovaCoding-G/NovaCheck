@@ -17,7 +17,7 @@ function explainCors(): { explanation: string; fixPrompt: string } {
     explanation:
       `CORS is configured too broadly (origin \`*\` or reflection of any Origin). ` +
       `Any website may be able to make authenticated browser requests to your API and read the responses, ` +
-      `exposing user data. This frequently appears in AI-generated boilerplate intended to make the frontend work.`,
+      `exposing user data.`,
     fixPrompt:
       `Restrict CORS to an explicit allowlist of origins (for example https://app.example.com). ` +
       `Do not use origin: '*' or origin: true in production with cookies or Authorization headers. ` +

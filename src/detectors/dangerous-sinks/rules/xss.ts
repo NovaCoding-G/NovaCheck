@@ -15,8 +15,7 @@ function explainXss(): { explanation: string; fixPrompt: string } {
   return {
     explanation:
       `XSS sink: HTML or script is injected into the DOM without sanitization. ` +
-      `User input could execute JavaScript in a victim's browser, enabling session theft or page defacement. ` +
-      `AI-generated code often uses innerHTML or dangerouslySetInnerHTML simply to make rendering work.`,
+      `User input could execute JavaScript in a victim's browser, enabling session theft or page defacement.`,
     fixPrompt:
       `Avoid innerHTML, document.write, and dangerouslySetInnerHTML with untrusted data. ` +
       `Use textContent, DOM-created elements, or a sanitizer such as DOMPurify. In React, prefer native JSX escaping.`,

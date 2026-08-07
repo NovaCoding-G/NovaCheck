@@ -175,8 +175,8 @@ export function analyzePackage(
         severity,
         `Package does not exist on ${registry}: ${pkg.name}`,
         `The package \`${pkg.name}\` is declared or imported but does not exist on ${registry}. ` +
-          `In AI-generated projects this often indicates a hallucinated dependency (slopsquatting): ` +
-          `an invented name that an attacker could register and fill with malware.${whyTypo}${blindNote}`,
+          `This may be a hallucinated dependency (slopsquatting): an invented name that an attacker ` +
+          `could register and fill with malware.${whyTypo}${blindNote}`,
         `The package "${pkg.name}" (${registry}) does not exist on the registry. ` +
           `Find every reference in ${pkg.file}` +
           (pkg.line ? ` (line ${pkg.line})` : "") +
@@ -216,8 +216,8 @@ export function analyzePackage(
         "medium",
         `Very recent package on ${registry}: ${pkg.name}`,
         `"${pkg.name}" has existed on ${registry} for only about ${Math.max(0, Math.floor(ageDays))} days. ` +
-          `Very new packages are a common follow-up to AI hallucinations: ` +
-          `someone registers an invented name and publishes malicious code. Verify maintainers, repository, and downloads before trusting it.`,
+          `Very new packages can be registered to catch hallucinated dependency names. ` +
+          `Verify maintainers, repository, and downloads before trusting it.`,
         `The package "${pkg.name}" on ${registry} was published less than ${options.maxAgeDays} days ago. ` +
           `Confirm this is intentional by checking the registry page, repository, and maintainers. ` +
           `If uncertain, replace it with a mature alternative and update ${pkg.file}.`,
@@ -242,7 +242,7 @@ export function analyzePackage(
         "low",
         `Low weekly downloads: ${pkg.name}`,
         `"${pkg.name}" had about ${info.weeklyDownloads} npm downloads in the last week and is not a mature package. ` +
-          `When combined with AI-generated code, recent low-usage packages deserve manual review of their maintainers and contents.`,
+          `Recent low-usage packages deserve manual review of their maintainers and contents.`,
         `The npm package "${pkg.name}" has fewer than ${options.minWeeklyDownloads} weekly downloads and is less than ${options.lowDownloadMaxAgeDays} days old. ` +
           `Confirm it is the intended package and not a typosquat; otherwise replace it with the correct popular alternative and update ${pkg.file}.`,
         pkg.name,
@@ -263,10 +263,9 @@ export function analyzePackage(
           "critical",
           `Suspicious name (similar to ${typosquatOf}): ${pkg.name}`,
           `"${pkg.name}" is very similar to the popular package \`${typosquatOf}\` and has weak trust signals ` +
-            `(low downloads and/or recent age). This is the classic typosquatting or slopsquatting profile ` +
-            `exploited when AI almost remembers a well-known package name.`,
+            `(low downloads and/or recent age). This matches a common typosquatting or slopsquatting profile.`,
           `The package "${pkg.name}" resembles "${typosquatOf}" but is not the same package. ` +
-            `Verify whether this is a typo or hallucination. If so, replace every occurrence with "${typosquatOf}" ` +
+            `Verify whether this is a typo or hallucinated name. If so, replace every occurrence with "${typosquatOf}" ` +
             `in ${pkg.file} and manifests, then reinstall dependencies.`,
           pkg.name,
           { typosquatOf, weeklyDownloads: info.weeklyDownloads, ageDays },

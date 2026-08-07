@@ -79,7 +79,7 @@ describe("SARIF reporter", () => {
   test("emits GitHub-compatible SARIF with locations and rules", () => {
     const sarif = JSON.parse(
       formatSarifReport(result(), {
-        policyFailures: ["Trust Score 63 sotto la soglia 85"],
+        policyFailures: ["Trust Score 63/100 is below the 85/100 threshold"],
         minimumScore: 85,
         failOn: ["critical"],
         scope: { mode: "changed", base: "origin/main", filesCount: 2 },

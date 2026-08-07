@@ -26,8 +26,7 @@ function explainExec(): { explanation: string; fixPrompt: string } {
   return {
     explanation:
       `Dynamic code execution through eval, Function, or vm. ` +
-      `If the input is not fully controlled, an attacker can execute arbitrary code ` +
-      `in the process (RCE). This is a common AI-code pattern that interprets strings instead of using safe parsers.`,
+      `If the input is not fully controlled, an attacker can execute arbitrary code in the process (RCE).`,
     fixPrompt:
       `Remove eval, new Function, and vm.runIn*. Use JSON parsers, ASTs, or dedicated libraries. ` +
       `Never execute strings received from users, files, or the network.`,

@@ -110,7 +110,7 @@ function parseArgs(argv: string[]): CliArgs {
       args.failOnIncomplete = false;
     } else if (a.startsWith("-")) {
       throw new Error(`Unknown option: ${a}`);
-    } else if (!a.startsWith("-")) {
+    } else {
       args.rootDir = resolve(a);
     }
   }
