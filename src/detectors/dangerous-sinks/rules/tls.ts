@@ -13,8 +13,7 @@ function explainTls(): { explanation: string; fixPrompt: string } {
   return {
     explanation:
       `TLS certificate verification is disabled. The connection is vulnerable to man-in-the-middle attacks: ` +
-      `an attacker on the network can intercept or modify traffic such as tokens, passwords, and data. ` +
-      `AI often adds this to work around SSL errors during development, and it can remain enabled in production.`,
+      `an attacker on the network can intercept or modify traffic such as tokens, passwords, and data.`,
     fixPrompt:
       `Re-enable TLS verification (remove rejectUnauthorized: false or verify=False). ` +
       `If development uses a self-signed certificate, configure a trusted local CA instead of disabling checks. ` +

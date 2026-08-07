@@ -31,8 +31,7 @@ function explainShell(lang: string): { explanation: string; fixPrompt: string } 
     explanation:
       `Shell command built with dynamic input (${lang}). ` +
       `If any part comes from a user request or untrusted data, an attacker can inject ` +
-      `shell metacharacters (\`;\`, \`&&\`, \`|\`) and execute arbitrary code on the server. ` +
-      `This is a common pattern in AI-generated code that prioritizes making a feature work over sanitization.`,
+      `shell metacharacters (\`;\`, \`&&\`, \`|\`) and execute arbitrary code on the server.`,
     fixPrompt:
       `Remove interpolation and concatenation from the shell command. Use an API with separate arguments ` +
       `(spawn/execFile with an args array and no shell:true; in Python use subprocess.run([...], shell=False)). ` +

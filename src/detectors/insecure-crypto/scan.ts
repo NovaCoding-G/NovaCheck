@@ -142,8 +142,7 @@ function pushMatches(
       detectorId: "insecure-crypto",
       severity,
       title,
-      explanation:
-        `${explanation} AI-generated projects commonly copy outdated snippets from Stack Overflow.`,
+      explanation,
       fixPrompt: `${fixPrompt} Occurrence at ${file}:${line}.`,
       file,
       line,

@@ -14,7 +14,7 @@ function explain(): { explanation: string; fixPrompt: string } {
   return {
     explanation:
       `Unsafe deserialization of data that may be controlled by an attacker. ` +
-      `This can lead to remote code execution through pickle, unsafe yaml.load, or unserialize. It is common in hastily generated AI code.`,
+      `This can lead to remote code execution through pickle, unsafe yaml.load, or unserialize.`,
     fixPrompt:
       `In Python, use yaml.safe_load or JSON and never use pickle with untrusted data. ` +
       `In JavaScript, avoid deserializing arbitrary objects and validate schemas with tools such as Zod or io-ts.`,

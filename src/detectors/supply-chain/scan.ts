@@ -61,10 +61,7 @@ export async function runSupplyChainScan(
     )) {
       if (typeof value !== "string") continue;
       const isLifecycle =
-        /^(pre|post)?(install|prepare|publish)$/i.test(name) ||
-        name === "preinstall" ||
-        name === "install" ||
-        name === "postinstall";
+        /^(pre|post)?(install|prepare|publish)$/i.test(name);
       if (DANGEROUS_SCRIPT_RE.test(value)) {
         const line = lineOfKey(raw, `"${name}"`);
         findings.push({
@@ -74,8 +71,7 @@ export async function runSupplyChainScan(
           title: `Dangerous npm script: ${name}`,
           explanation:
             `The \`${name}\` script executes a pattern commonly used in supply-chain attacks ` +
-            `(for example curl|bash or remote downloads). AI-generated projects often copy it ` +
-            `from unsafe tutorials, and it can install malware during \`npm install\`.`,
+            `(for example curl|bash or remote downloads) and can install malware during \`npm install\`.`,
           fixPrompt:
             `Review and remove the "${name}" script from package.json unless it is strictly required. ` +
             `Do not download or execute remote payloads in lifecycle scripts. Prefer versioned registry dependencies.`,

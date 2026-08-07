@@ -57,14 +57,14 @@ function resolved(
           ? [
               {
                 resolver: "blind-bundler-alias",
-                reason: "Rilevato alias in vite.config.ts (non valutato)",
+                reason: "Alias detected in vite.config.ts (not evaluated)",
               },
             ]
           : [],
       reason:
         action === "blind"
-          ? "Possibile alias non risolto — verifica"
-          : "Candidato registry",
+          ? "Possible unresolved alias — verify"
+          : "Registry candidate",
       packageName: pkg.name,
     },
   };
