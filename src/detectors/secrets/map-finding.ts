@@ -29,7 +29,6 @@ export function findingFromSecretlint(
     explanation:
       `A secret matching a known pattern (${label}) was found at \`${relFile}:${hit.line}\`. ` +
       `If the repository is published, anyone could reuse it for account theft, API charges, or database/cloud access. ` +
-      `AI-generated projects often place example or development keys directly in source code. ` +
       `Details: ${hit.message}`,
     fixPrompt:
       `A secret was detected in ${relFile} at line ${hit.line} (${label}: ${hit.messageId}). ` +

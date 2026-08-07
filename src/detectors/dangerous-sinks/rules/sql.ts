@@ -36,7 +36,7 @@ function explainSql(): { explanation: string; fixPrompt: string } {
     explanation:
       `SQL query built through concatenation or interpolation. ` +
       `Unsanitized input can modify the query (SQL injection), enabling data access or modification, ` +
-      `authentication bypass, or worse. AI often implements dynamic filters by concatenating strings instead of using parameters.`,
+      `authentication bypass, or worse.`,
     fixPrompt:
       `Rewrite the query with bound parameters (placeholders such as $1, ?, or :name) and pass values separately. ` +
       `Avoid f-strings, interpolated template literals, and string concatenation in SQL. ` +
