@@ -165,7 +165,7 @@ jobs:
   trust:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           fetch-depth: 0
       - uses: NovaCoding-G/NovaCheck@v0.4.0

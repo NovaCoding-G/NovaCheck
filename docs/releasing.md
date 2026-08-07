@@ -13,6 +13,7 @@ publisher with:
 - Repository: `NovaCheck`
 - Workflow: `release.yml`
 - Environment: `npm`
+- Allowed actions: `npm publish`
 
 Create a protected GitHub environment named `npm` and restrict deployment to
 tags matching `v*`.
@@ -36,8 +37,9 @@ tags matching `v*`.
    release notes.
 
 Publishing the release triggers `.github/workflows/release.yml`. The workflow
-checks the tag/version match, reruns the full quality gate, dry-runs the package,
-and publishes with npm provenance.
+checks that the tag/version metadata match and that the tagged commit belongs
+to `main`, reruns the full quality gate, dry-runs the package, and publishes
+with npm provenance.
 
 ## Verify
 
