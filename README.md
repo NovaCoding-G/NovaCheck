@@ -11,6 +11,9 @@
 [![npx](https://img.shields.io/badge/npx-novacheck-black?logo=npm)](https://www.npmjs.com/package/novacheck)
 [![GitHub stars](https://img.shields.io/github/stars/NovaCoding-G/NovaCheck?style=social)](https://github.com/NovaCoding-G/NovaCheck)
 
+<p align="center">
+  <img src="docs/assets/IMG_0966.png"
+
 **Run this before shipping AI-generated code.**
 
 NovaCheck is a local-first security and AI-provenance scanner built for the reality of modern development: Cursor, Copilot, Claude, ChatGPT, and agents that ship working code faster than humans can review it.
