@@ -13,6 +13,11 @@ export interface SecretsScanOptions {
   /** Skip the entropy pass (secretlint only). */
   skipEntropy?: boolean;
   maxFileBytes?: number;
+  onIssue?: (issue: {
+    code: string;
+    message: string;
+    file: string;
+  }) => void;
 }
 
 export interface SecretsScanResult {
@@ -32,7 +37,11 @@ export async function runSecretsScan(
   rootDir: string,
   options: SecretsScanOptions = {},
 ): Promise<SecretsScanResult> {
-  const files = await listTextFiles(rootDir, options.maxFileBytes);
+  const files = await listTextFiles(
+    rootDir,
+    options.maxFileBytes,
+    options.onIssue,
+  );
   const findings: Finding[] = [];
   const occupiedLines = new Set<string>();
   let filesAnalyzed = 0;
@@ -46,6 +55,11 @@ export async function runSecretsScan(
       secretlintHits = await lintFileWithSecretlint(abs);
       analyzed = true;
     } catch {
+      options.onIssue?.({
+        code: "secretlint-file-failed",
+        message: `Secretlint could not analyze "${rel}".`,
+        file: rel,
+      });
       continue;
     }
 
@@ -60,6 +74,11 @@ export async function runSecretsScan(
         content = await readFile(abs, "utf8");
         analyzed = true;
       } catch {
+        options.onIssue?.({
+          code: "secret-entropy-read-failed",
+          message: `The entropy pass could not read "${rel}".`,
+          file: rel,
+        });
         if (analyzed) filesAnalyzed++;
         continue;
       }

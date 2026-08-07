@@ -43,6 +43,8 @@ function result(): ScanResult {
     detectorsRun: ["dangerous-sinks", "secrets"],
     detectorsSkipped: [],
     diagnostics: {
+      incomplete: false,
+      issues: [],
       detectors: [
         {
           detectorId: "dangerous-sinks",
@@ -145,6 +147,47 @@ describe("SARIF reporter", () => {
 });
 
 describe("policy", () => {
+  test("can fail closed when analysis is incomplete", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "novacheck-policy-"));
+    try {
+      await writeFile(
+        join(dir, ".novacheck.yml"),
+        "minimumScore: 85\nfailOnIncomplete: true\n",
+      );
+      const loaded = await loadPolicy(dir);
+      const incomplete: ScanResult = {
+        ...result(),
+        diagnostics: {
+          ...result().diagnostics,
+          incomplete: true,
+          issues: [
+            {
+              detectorId: "ghost-deps",
+              code: "registry-lookup-failed",
+              message: "Could not verify npm package.",
+            },
+          ],
+        },
+      };
+      expect(loaded.policy.failOnIncomplete).toBe(true);
+      expect(policyFailureReasons(incomplete, loaded.policy, 85)).toContain(
+        "Scan incomplete: 1 input could not be analyzed",
+      );
+      const ignored = applyPolicy(incomplete, {
+        ...loaded.policy,
+        ignore: { detectors: ["ghost-deps"] },
+      });
+      expect(ignored.diagnostics.incomplete).toBe(false);
+      expect(
+        policyFailureReasons(ignored, loaded.policy, 85).some((reason) =>
+          reason.startsWith("Scan incomplete:"),
+        ),
+      ).toBe(false);
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
   test("loads YAML and ignores configured paths", async () => {
     const dir = await mkdtemp(join(tmpdir(), "novacheck-policy-"));
     try {
@@ -187,5 +230,50 @@ describe("changed-file scope", () => {
       filtered.diagnostics.detectors.find((d) => d.detectorId === "secrets")
         ?.findingsCount,
     ).toBe(0);
+  });
+
+  test("keeps only changed-file and repository-wide diagnostic issues", () => {
+    const base = result();
+    const filtered = filterResultToChangedFiles(
+      {
+        ...base,
+        diagnostics: {
+          ...base.diagnostics,
+          incomplete: true,
+          issues: [
+            {
+              detectorId: "ghost-deps",
+              code: "lookup-failed",
+              message: "Changed package could not be checked.",
+              file: "src/app.ts",
+            },
+            {
+              detectorId: "ghost-deps",
+              code: "lookup-failed",
+              message: "Unchanged package could not be checked.",
+              file: "package.json",
+            },
+            {
+              detectorId: "secrets",
+              code: "directory-failed",
+              message: "Changed source directory could not be enumerated.",
+              file: "src",
+            },
+            {
+              detectorId: "global",
+              code: "repository-failed",
+              message: "Repository-wide analysis failed.",
+            },
+          ],
+        },
+      },
+      new Set(["src/app.ts"]),
+    );
+    expect(filtered.diagnostics.issues.map((issue) => issue.code)).toEqual([
+      "lookup-failed",
+      "directory-failed",
+      "repository-failed",
+    ]);
+    expect(filtered.diagnostics.incomplete).toBe(true);
   });
 });

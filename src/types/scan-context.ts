@@ -1,4 +1,7 @@
-import type { DetectorRunStats } from "./diagnostics.ts";
+import type {
+  DetectorRunStats,
+  ScanDiagnosticIssue,
+} from "./diagnostics.ts";
 
 export interface DetectorSkip {
   id: string;
@@ -22,6 +25,8 @@ export interface ScanContext {
   signal?: AbortSignal;
   /** Detectors call this when they intentionally skip (not an error). */
   skip(detectorId: string, reason: string): void;
+  /** Record an input that could not be analyzed completely. */
+  reportIssue(issue: ScanDiagnosticIssue): void;
   /**
    * Detectors report discovery/analysis counts for --verbose.
    * Call once per detector run (after work completes).

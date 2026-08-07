@@ -29,6 +29,11 @@ export interface PackageInfo {
   exists: boolean | undefined;
   createdAt?: Date;
   weeklyDownloads?: number;
+  /** Present when the registry result is unknown because verification failed. */
+  lookupIssue?: {
+    code: string;
+    message: string;
+  };
 }
 
 export interface RegistryClient {

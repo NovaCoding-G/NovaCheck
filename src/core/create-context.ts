@@ -1,5 +1,6 @@
 import type {
   DetectorRunStats,
+  ScanDiagnosticIssue,
   DetectorSkip,
   ScanContext,
   ScanDiagnostics,
@@ -19,6 +20,7 @@ export function createScanContext(options: CreateContextOptions): {
   getDiagnostics: (registered: Array<{ id: string; name: string }>) => ScanDiagnostics;
 } {
   const skips: DetectorSkip[] = [];
+  const issues: ScanDiagnosticIssue[] = [];
   const statsById = new Map<string, DetectorRunStats>();
   const allFiles = new Set<string>();
 
@@ -46,14 +48,41 @@ export function createScanContext(options: CreateContextOptions): {
         });
       }
     },
+    reportIssue(issue) {
+      if (
+        issues.some(
+          (existing) =>
+            existing.detectorId === issue.detectorId &&
+            existing.code === issue.code &&
+            existing.message === issue.message &&
+            existing.file === issue.file,
+        )
+      ) {
+        return;
+      }
+      issues.push(issue);
+      const previous = statsById.get(issue.detectorId);
+      if (previous && previous.status !== "skipped") {
+        previous.status = "degraded";
+      }
+    },
     recordStats(stats) {
       for (const f of stats.files ?? []) allFiles.add(f);
       const existing = statsById.get(stats.detectorId);
       const skip = skips.find((s) => s.id === stats.detectorId);
+      const degraded = issues.some(
+        (issue) => issue.detectorId === stats.detectorId,
+      );
       statsById.set(stats.detectorId, {
         detectorId: stats.detectorId,
         name: stats.name,
-        status: skip ? "skipped" : (existing?.status === "skipped" ? "skipped" : "ran"),
+        status: skip
+          ? "skipped"
+          : existing?.status === "skipped"
+            ? "skipped"
+            : degraded
+              ? "degraded"
+              : "ran",
         skipReason: skip?.reason ?? existing?.skipReason,
         filesReceived: stats.filesReceived,
         filesAnalyzed: stats.filesAnalyzed,
@@ -72,10 +101,11 @@ export function createScanContext(options: CreateContextOptions): {
         return { ...recorded, name: recorded.name || d.name };
       }
       const skip = skips.find((s) => s.id === d.id);
+      const degraded = issues.some((issue) => issue.detectorId === d.id);
       return {
         detectorId: d.id,
         name: d.name,
-        status: skip ? "skipped" : "ran",
+        status: skip ? "skipped" : degraded ? "degraded" : "ran",
         skipReason: skip?.reason,
         filesReceived: 0,
         filesAnalyzed: 0,
@@ -93,6 +123,8 @@ export function createScanContext(options: CreateContextOptions): {
 
     return {
       detectors,
+      incomplete: issues.length > 0,
+      issues: [...issues],
       totalFilesReceived,
       uniqueFilesTouched: allFiles.size,
       discoveryPatterns: [...patternSet],

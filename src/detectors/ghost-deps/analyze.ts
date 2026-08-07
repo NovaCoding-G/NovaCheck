@@ -31,6 +31,8 @@ const DEFAULTS = {
   lowDownloadMaxAgeDays: 180,
 } as const;
 
+const REGISTRY_LOOKUP_CONCURRENCY = 8;
+
 function findTyposquatTarget(
   name: string,
   ecosystem: DeclaredPackage["ecosystem"],
@@ -309,6 +311,11 @@ export async function runGhostDepsAnalysis(
   registry: RegistryClient,
   options: GhostDepsOptions = {},
   now = new Date(),
+  onIssue?: (issue: {
+    code: string;
+    message: string;
+    file: string;
+  }) => void,
 ): Promise<GhostDepsScanResult> {
   const opts: Required<GhostDepsOptions> = {
     maxAgeDays: options.maxAgeDays ?? DEFAULTS.maxAgeDays,
@@ -318,16 +325,30 @@ export async function runGhostDepsAnalysis(
   };
 
   const index = await buildProjectResolveIndex(rootDir);
-  const collected = await collectPackagesDetailed(rootDir);
+  const collected = await collectPackagesDetailed(rootDir, onIssue);
   const packages = resolvePackages(collected.packages, index);
-  const findings: Finding[] = [];
-
-  for (const pkg of packages) {
-    // Blind packages still get a registry lookup when possible, so we can
-    // confirm nonexistence and attach the "possibile alias" note at HIGH.
-    const info = await registry.lookup(pkg.ecosystem, pkg.name);
-    findings.push(...analyzePackage(pkg, info, opts, now));
-  }
+  // Keep registry traffic bounded while avoiding one-request-at-a-time scans
+  // on monorepos. Promise results retain package order for deterministic output.
+  const analyzed = await mapWithConcurrency(
+    packages,
+    REGISTRY_LOOKUP_CONCURRENCY,
+    async (pkg) => {
+      // Blind packages still get a registry lookup when possible, so we can
+      // confirm nonexistence and attach the "possible alias" note at HIGH.
+      const info = await registry.lookup(pkg.ecosystem, pkg.name);
+      if (info.exists === undefined) {
+        onIssue?.({
+          code: info.lookupIssue?.code ?? "registry-lookup-unknown",
+          message:
+            info.lookupIssue?.message ??
+            `Could not verify ${pkg.ecosystem} package "${pkg.name}".`,
+          file: pkg.file,
+        });
+      }
+      return analyzePackage(pkg, info, opts, now);
+    },
+  );
+  const findings = analyzed.flat();
 
   return {
     findings,
@@ -336,4 +357,34 @@ export async function runGhostDepsAnalysis(
     files: collected.files,
     discoveryPatterns: [...GHOST_DEPS_DISCOVERY_PATTERNS],
   };
+}
+
+async function mapWithConcurrency<T, R>(
+  values: readonly T[],
+  concurrency: number,
+  fn: (value: T) => Promise<R>,
+): Promise<R[]> {
+  const results = new Array<R>(values.length);
+  let nextIndex = 0;
+  let stopped = false;
+  let firstError: unknown;
+  const worker = async (): Promise<void> => {
+    while (!stopped && nextIndex < values.length) {
+      const index = nextIndex++;
+      try {
+        results[index] = await fn(values[index]!);
+      } catch (error) {
+        stopped = true;
+        firstError ??= error;
+      }
+    }
+  };
+  await Promise.all(
+    Array.from(
+      { length: Math.min(concurrency, values.length) },
+      () => worker(),
+    ),
+  );
+  if (firstError !== undefined) throw firstError;
+  return results;
 }

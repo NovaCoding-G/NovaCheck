@@ -111,6 +111,16 @@ describe("runSecretsScan", () => {
     expect(findings).toHaveLength(0);
   });
 
+  test("reports traversal failures instead of treating them as clean", async () => {
+    const issues: string[] = [];
+    const missing = join(FIXTURES, "does-not-exist");
+    const result = await runSecretsScan(missing, {
+      onIssue: (issue) => issues.push(issue.code),
+    });
+    expect(result.findings).toHaveLength(0);
+    expect(issues).toEqual(["text-walk-directory-failed"]);
+  });
+
   test("detector.run wires ScanContext", async () => {
     const detector = createSecretsDetector();
     const { ctx } = createScanContext({

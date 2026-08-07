@@ -11,7 +11,13 @@ export function createDangerousSinksDetector(): Detector {
     description:
       "Detects shell/SQL injection, permissive CORS, disabled TLS, eval/Function, XSS, and unsafe pickle/yaml.load using tree-sitter ASTs.",
     async run(ctx: ScanContext): Promise<Finding[]> {
-      const result = await runDangerousSinksScan(ctx.rootDir);
+      const result = await runDangerousSinksScan(ctx.rootDir, {
+        onIssue: (issue) =>
+          ctx.reportIssue({
+            detectorId: "dangerous-sinks",
+            ...issue,
+          }),
+      });
       ctx.recordStats({
         detectorId: "dangerous-sinks",
         name: "Dangerous sinks",

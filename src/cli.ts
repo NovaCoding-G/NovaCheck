@@ -31,6 +31,7 @@ interface CliArgs {
   htmlPath?: string;
   writeBadge: boolean;
   failBelow?: number;
+  failOnIncomplete?: boolean;
   sarif: boolean;
   sarifPath?: string;
   changed: boolean;
@@ -103,6 +104,10 @@ function parseArgs(argv: string[]): CliArgs {
         throw new Error("--fail-below must be an integer between 0 and 100.");
       }
       args.failBelow = value;
+    } else if (a === "--fail-on-incomplete") {
+      args.failOnIncomplete = true;
+    } else if (a === "--allow-incomplete") {
+      args.failOnIncomplete = false;
     } else if (a.startsWith("-")) {
       throw new Error(`Unknown option: ${a}`);
     } else if (!a.startsWith("-")) {
@@ -135,7 +140,11 @@ Options:
   --html [path]     Write HTML report (default: <dir>/.novacheck/report.html)
   --no-html         Do not write the HTML report
   --badge           Write an SVG badge and README snippet
-  --fail-below N    Override the policy threshold (default: 70)
+  --fail-below N    Override the policy threshold (default: 85)
+  --fail-on-incomplete
+                    Fail when any input could not be analyzed
+  --allow-incomplete
+                    Warn but do not fail on incomplete analysis (local default)
   -V, --version     Show the version
   -h, --help        Show this help
 `);
@@ -160,6 +169,8 @@ async function main(): Promise<void> {
   const policy = {
     ...loadedPolicy.policy,
     minimumScore: args.failBelow ?? loadedPolicy.policy.minimumScore,
+    failOnIncomplete:
+      args.failOnIncomplete ?? loadedPolicy.policy.failOnIncomplete,
   };
 
   let result = await runScan({
@@ -185,14 +196,15 @@ async function main(): Promise<void> {
     );
   }
   result = applyPolicy(result, policy);
-  const minimumScore = policy.minimumScore ?? 70;
-  const failures = policyFailureReasons(result, policy, 70);
+  const minimumScore = policy.minimumScore ?? 85;
+  const failures = policyFailureReasons(result, policy, 85);
 
   process.stdout.write(
     formatTerminalReport(result, {
       verbose: args.verbose,
       minimumScore,
       failOn: policy.failOn,
+      failOnIncomplete: policy.failOnIncomplete,
     }),
   );
 
@@ -203,6 +215,7 @@ async function main(): Promise<void> {
       formatHtmlReport(result, {
         minimumScore,
         failOn: policy.failOn,
+        failOnIncomplete: policy.failOnIncomplete,
       }),
       "utf8",
     );

@@ -38,6 +38,8 @@ function fakeResult(overrides: Partial<ScanResult> = {}): ScanResult {
       { id: "ai-unreviewed", reason: "No provenance found" },
     ],
     diagnostics: {
+      incomplete: false,
+      issues: [],
       detectors: [
         {
           detectorId: "ghost-deps",
@@ -111,6 +113,37 @@ describe("reporters", () => {
     expect(info).toContain("0 risks to review");
     expect(info).toContain("1 informational signal");
     expect(info).not.toContain("Priority risks");
+  });
+
+  test("does not claim a clean result when analysis is incomplete", () => {
+    const base = fakeResult();
+    const incomplete = fakeResult({
+      trustScore: 100,
+      findings: [],
+      diagnostics: {
+        ...base.diagnostics,
+        incomplete: true,
+        issues: [
+          {
+            detectorId: "ghost-deps",
+            code: "registry-timeout",
+            message: "Registry lookup timed out.",
+            file: "package.json",
+          },
+        ],
+      },
+    });
+
+    const terminal = formatTerminalReport(incomplete);
+    const html = formatHtmlReport(incomplete);
+    expect(terminal).toContain(
+      "No risks detected in the analyzed inputs, but analysis is incomplete.",
+    );
+    expect(html).toContain(
+      "No risks detected in the analyzed inputs, but analysis is incomplete.",
+    );
+    expect(terminal).not.toContain("No high-confidence risks detected.");
+    expect(html).not.toContain("No high-confidence risks detected.");
   });
 
   test("uses the configured policy threshold for status", () => {
@@ -214,6 +247,36 @@ describe("runScan orchestration", () => {
         { id: "skipper", reason: "niente da fare" },
       ]);
       expect(result.trustScore).toBe(100);
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
+  test("records degraded detectors and incomplete inputs", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "novacheck-degraded-"));
+    try {
+      const stub: Detector = {
+        id: "networked",
+        name: "Networked",
+        description: "test",
+        async run(ctx) {
+          ctx.reportIssue({
+            detectorId: "networked",
+            code: "lookup-failed",
+            message: "A required lookup failed.",
+          });
+          return [];
+        },
+      };
+      const result = await runScan({ rootDir: dir, detectors: [stub] });
+      expect(result.diagnostics.incomplete).toBe(true);
+      expect(result.diagnostics.issues).toHaveLength(1);
+      expect(result.diagnostics.detectors[0]?.status).toBe("degraded");
+      const terminal = formatTerminalReport(result, { verbose: true });
+      expect(terminal).toContain("INCOMPLETE");
+      expect(terminal).toContain("degraded");
+      expect(terminal).toContain("Resolve incomplete checks");
+      expect(formatHtmlReport(result)).toContain("Resolve incomplete checks");
     } finally {
       await rm(dir, { recursive: true, force: true });
     }

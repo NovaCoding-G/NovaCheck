@@ -81,14 +81,6 @@ export function findJsShellSinks(tree: Tree, file: string): SinkMatch[] {
     } else if (shellTrue && dynamicSomewhere) {
       // spawn/execFile(..., { shell: true }) with dynamic pieces
       risky = true;
-    } else if (
-      !shellTrue &&
-      dynamicCmd &&
-      (name === "execFile" || name === "execFileSync") &&
-      cmd.type !== "array"
-    ) {
-      // execFile(dynamicString) without arg array — often shell-like
-      risky = true;
     }
 
     if (!risky) continue;

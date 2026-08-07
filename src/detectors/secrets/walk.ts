@@ -64,6 +64,12 @@ const SKIP_BASENAMES = new Set([
 /** Default max file size: 512 KiB — secrets in huge dumps are rare and noisy. */
 export const DEFAULT_MAX_FILE_BYTES = 512 * 1024;
 
+export interface TextWalkIssue {
+  code: string;
+  message: string;
+  file: string;
+}
+
 /** Human-readable discovery rules for --verbose. */
 export const TEXT_FILE_DISCOVERY_PATTERNS = [
   "recursive walk from project root",
@@ -77,6 +83,7 @@ export const TEXT_FILE_DISCOVERY_PATTERNS = [
 export async function listTextFiles(
   rootDir: string,
   maxBytes = DEFAULT_MAX_FILE_BYTES,
+  onIssue?: (issue: TextWalkIssue) => void,
 ): Promise<string[]> {
   const out: string[] = [];
 
@@ -85,6 +92,12 @@ export async function listTextFiles(
     try {
       entries = await readdir(dir, { withFileTypes: true });
     } catch {
+      const rel = toRel(rootDir, dir) || ".";
+      onIssue?.({
+        code: "text-walk-directory-failed",
+        message: `Could not enumerate directory "${rel}".`,
+        file: rel,
+      });
       return;
     }
     for (const entry of entries) {
@@ -113,6 +126,12 @@ export async function listTextFiles(
         const s = await stat(full);
         if (s.size === 0 || s.size > maxBytes) continue;
       } catch {
+        const rel = toRel(rootDir, full);
+        onIssue?.({
+          code: "text-walk-stat-failed",
+          message: `Could not inspect "${rel}".`,
+          file: rel,
+        });
         continue;
       }
       out.push(full);

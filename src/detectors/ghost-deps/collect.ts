@@ -25,7 +25,16 @@ const IGNORE_DIRS = new Set([
   ".novacheck",
 ]);
 
-async function walkFiles(root: string): Promise<string[]> {
+export interface GhostDepsWalkIssue {
+  code: string;
+  message: string;
+  file: string;
+}
+
+async function walkFiles(
+  root: string,
+  onIssue?: (issue: GhostDepsWalkIssue) => void,
+): Promise<string[]> {
   const out: string[] = [];
 
   async function walk(dir: string): Promise<void> {
@@ -33,6 +42,12 @@ async function walkFiles(root: string): Promise<string[]> {
     try {
       entries = await readdir(dir, { withFileTypes: true });
     } catch {
+      const file = rel(root, dir) || ".";
+      onIssue?.({
+        code: "ghost-deps-walk-directory-failed",
+        message: `Could not enumerate directory "${file}".`,
+        file,
+      });
       return;
     }
     for (const entry of entries) {
@@ -298,8 +313,9 @@ export async function collectPackages(
 
 export async function collectPackagesDetailed(
   rootDir: string,
+  onIssue?: (issue: GhostDepsWalkIssue) => void,
 ): Promise<CollectPackagesResult> {
-  const files = await walkFiles(rootDir);
+  const files = await walkFiles(rootDir, onIssue);
   const map = new Map<string, DeclaredPackage>();
   let filesAnalyzed = 0;
 

@@ -61,6 +61,12 @@ export function createGhostDepsDetector(
         ctx.rootDir,
         registry,
         options,
+        new Date(),
+        (issue) =>
+          ctx.reportIssue({
+            detectorId: "ghost-deps",
+            ...issue,
+          }),
       );
       ctx.recordStats({
         detectorId: "ghost-deps",

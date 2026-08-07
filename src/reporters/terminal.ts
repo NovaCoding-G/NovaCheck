@@ -63,7 +63,9 @@ export function formatVerboseDiagnostics(result: ScanResult): string {
     const status =
       det.status === "skipped"
         ? `${ansi.yellow}skipped${ansi.reset}${det.skipReason ? ` — ${det.skipReason}` : ""}`
-        : `${ansi.green}completed${ansi.reset}`;
+        : det.status === "degraded"
+          ? `${ansi.yellow}degraded${ansi.reset}`
+          : `${ansi.green}completed${ansi.reset}`;
     lines.push(
       `  ${ansi.bold}${det.detectorId}${ansi.reset} (${det.name}): ${status}`,
     );
@@ -88,6 +90,7 @@ export function formatTerminalReport(
     verbose?: boolean;
     minimumScore?: number;
     failOn?: Severity[];
+    failOnIncomplete?: boolean;
   } = {},
 ): string {
   const band = scoreBand(result.trustScore);
@@ -98,8 +101,9 @@ export function formatTerminalReport(
   const status = scanStatus(
     result.trustScore,
     counts,
-    options.minimumScore ?? 70,
+    options.minimumScore ?? 85,
     options.failOn ?? [],
+    Boolean(options.failOnIncomplete && result.diagnostics.incomplete),
   );
   const lines: string[] = [];
 
@@ -118,6 +122,12 @@ export function formatTerminalReport(
       `${scoreColor(result.trustScore)}${ansi.bold}${result.trustScore}/100${ansi.reset}  ` +
       `${scoreBar(result.trustScore)}  ${ansi.dim}${band.label}${ansi.reset}`,
   );
+  if (result.diagnostics.incomplete) {
+    lines.push(
+      `${ansi.yellow}${ansi.bold}INCOMPLETE${ansi.reset}  ` +
+        `${result.diagnostics.issues.length} ${result.diagnostics.issues.length === 1 ? "input was" : "inputs were"} not fully analyzed`,
+    );
+  }
   lines.push(
     `${actionable.length} ${actionable.length === 1 ? "risk" : "risks"} to review · ` +
       `${infoCount} informational ${infoCount === 1 ? "signal" : "signals"} · ` +
@@ -129,7 +139,9 @@ export function formatTerminalReport(
 
   lines.push("");
   lines.push(`${ansi.bold}What to do next${ansi.reset}`);
-  lines.push(`  ${nextAction(counts, actionable.length)}`);
+  lines.push(
+    `  ${nextAction(counts, actionable.length, result.diagnostics.incomplete)}`,
+  );
 
   if (top.length > 0) {
     lines.push("");
@@ -155,9 +167,15 @@ export function formatTerminalReport(
     });
   } else {
     lines.push("");
-    lines.push(
-      `${ansi.green}${ansi.bold}No high-confidence risks detected.${ansi.reset}`,
-    );
+    if (result.diagnostics.incomplete) {
+      lines.push(
+        `${ansi.yellow}${ansi.bold}No risks detected in the analyzed inputs, but analysis is incomplete.${ansi.reset}`,
+      );
+    } else {
+      lines.push(
+        `${ansi.green}${ansi.bold}No high-confidence risks detected.${ansi.reset}`,
+      );
+    }
   }
 
   const rest = actionable.length - top.length;
@@ -173,6 +191,23 @@ export function formatTerminalReport(
     lines.push(`${ansi.yellow}${ansi.bold}Partial coverage${ansi.reset}`);
     for (const skipped of result.detectorsSkipped) {
       lines.push(`  ${ansi.dim}${skipped.id}: ${skipped.reason}${ansi.reset}`);
+    }
+  }
+
+  if (result.diagnostics.issues.length > 0) {
+    lines.push("");
+    lines.push(`${ansi.yellow}${ansi.bold}Incomplete analysis${ansi.reset}`);
+    for (const issue of result.diagnostics.issues.slice(0, 20)) {
+      const where = issue.file ? ` (${issue.file})` : "";
+      lines.push(
+        `  ${ansi.dim}${issue.detectorId}/${issue.code}${where}: ${issue.message}${ansi.reset}`,
+      );
+    }
+    const hidden = result.diagnostics.issues.length - 20;
+    if (hidden > 0) {
+      lines.push(
+        `  ${ansi.dim}… ${hidden} more incomplete ${hidden === 1 ? "input" : "inputs"} in HTML/SARIF diagnostics${ansi.reset}`,
+      );
     }
   }
 
@@ -202,11 +237,17 @@ function scanStatus(
   counts: Record<Severity, number>,
   minimumScore: number,
   failOn: readonly Severity[],
+  incompleteGateFailed: boolean,
 ): { label: string; color: string } {
   const severityGateFailed = failOn.some(
     (severity) => counts[severity] > 0,
   );
-  if (counts.critical > 0 || score < minimumScore || severityGateFailed) {
+  if (
+    counts.critical > 0 ||
+    score < minimumScore ||
+    severityGateFailed ||
+    incompleteGateFailed
+  ) {
     return { label: "BLOCKED", color: ansi.red };
   }
   if (counts.high > 0 || counts.medium > 0) {
@@ -218,7 +259,11 @@ function scanStatus(
 function nextAction(
   counts: Record<Severity, number>,
   actionableCount: number,
+  incomplete: boolean,
 ): string {
+  if (incomplete) {
+    return "Resolve incomplete checks or rerun the scan before treating this result as verified.";
+  }
   if (counts.critical > 0) {
     return `Fix the ${counts.critical} critical ${counts.critical === 1 ? "finding" : "findings"} first. Do not ship yet.`;
   }

@@ -4,6 +4,7 @@ import {
   analyzePackage,
   buildProjectResolveIndex,
   collectPackages,
+  collectPackagesDetailed,
   createGhostDepsDetector,
   levenshtein,
   matchPathPattern,
@@ -108,6 +109,19 @@ describe("heuristics", () => {
 });
 
 describe("collectPackages", () => {
+  test("reports traversal failures instead of treating them as complete", async () => {
+    const issues: Array<{ code: string; file: string }> = [];
+    const collected = await collectPackagesDetailed(
+      join(FIXTURES, "does-not-exist"),
+      (issue) => issues.push({ code: issue.code, file: issue.file }),
+    );
+
+    expect(collected.packages).toHaveLength(0);
+    expect(issues).toEqual([
+      { code: "ghost-deps-walk-directory-failed", file: "." },
+    ]);
+  });
+
   test("reads npm manifests and imports", async () => {
     const pkgs = await collectPackages(join(FIXTURES, "npm-project"));
     const names = pkgs.map((p) => p.name).sort();
@@ -361,6 +375,24 @@ describe("analyzePackage (Phase 2 severity)", () => {
 });
 
 describe("runGhostDepsAnalysis (integration)", () => {
+  test("attaches unknown registry diagnostics to source files", async () => {
+    const issues: Array<{ code: string; file: string }> = [];
+    await runGhostDepsAnalysis(
+      join(FIXTURES, "npm-project"),
+      {
+        async lookup(ecosystem, name) {
+          return { name, ecosystem, exists: undefined };
+        },
+      },
+      {},
+      new Date("2026-07-16T12:00:00.000Z"),
+      (issue) => issues.push(issue),
+    );
+    expect(issues.length).toBeGreaterThan(0);
+    expect(issues.every((issue) => issue.file.length > 0)).toBe(true);
+    expect(issues.some((issue) => issue.file === "package.json")).toBe(true);
+  });
+
   test("npm fixture: import-only ghost is CRITICAL", async () => {
     const registry = fakeRegistry({
       "npm:react": {

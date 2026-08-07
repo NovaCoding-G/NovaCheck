@@ -20,19 +20,24 @@ function loc(f: Finding): string {
 
 export function formatHtmlReport(
   result: ScanResult,
-  options: { minimumScore?: number; failOn?: Severity[] } = {},
+  options: {
+    minimumScore?: number;
+    failOn?: Severity[];
+    failOnIncomplete?: boolean;
+  } = {},
 ): string {
   const band = scoreBand(result.trustScore);
   const counts = countBySeverity(result.findings);
   const actionable = result.findings.filter((f) => f.severity !== "info");
-  const minimumScore = options.minimumScore ?? 70;
+  const minimumScore = options.minimumScore ?? 85;
   const severityGateFailed = (options.failOn ?? []).some(
     (severity) => counts[severity] > 0,
   );
   const status =
     counts.critical > 0 ||
     result.trustScore < minimumScore ||
-    severityGateFailed
+    severityGateFailed ||
+    (options.failOnIncomplete && result.diagnostics.incomplete)
       ? { label: "Blocked", className: "blocked" }
       : counts.high > 0 || counts.medium > 0
         ? { label: "Review required", className: "review" }
@@ -80,6 +85,15 @@ export function formatHtmlReport(
           .map((s) => `<li><code>${esc(s.id)}</code> — ${esc(s.reason)}</li>`)
           .join("")}</ul>`
       : "";
+  const incompleteIssues =
+    result.diagnostics.issues.length > 0
+      ? `<ul class="skips">${result.diagnostics.issues
+          .map(
+            (issue) =>
+              `<li><code>${esc(issue.detectorId)}/${esc(issue.code)}</code>${issue.file ? ` — ${esc(issue.file)}` : ""}: ${esc(issue.message)}</li>`,
+          )
+          .join("")}</ul>`
+      : "";
 
   const filters = (["critical", "high", "medium", "low", "info"] as Severity[])
     .filter((severity) => counts[severity] > 0)
@@ -90,7 +104,9 @@ export function formatHtmlReport(
     .join("");
 
   const nextAction =
-    counts.critical > 0
+    result.diagnostics.incomplete
+      ? "Resolve incomplete checks or rerun the scan before treating this result as verified."
+      : counts.critical > 0
       ? `Fix the ${counts.critical} critical ${counts.critical === 1 ? "finding" : "findings"} before shipping.`
       : counts.high > 0
         ? `Review the ${counts.high} high-severity ${counts.high === 1 ? "finding" : "findings"} before merging.`
@@ -319,7 +335,7 @@ export function formatHtmlReport(
         <div class="status ${status.className}">${status.label}</div>
         <h2 id="summary-title" style="margin:.35rem 0 0">${actionable.length} ${actionable.length === 1 ? "risk" : "risks"} to review</h2>
         <progress max="100" value="${result.trustScore}">${result.trustScore}%</progress>
-        <div class="summary-meta">${esc(band.label)} · ${result.detectorsRun.length} checks · ${result.durationMs}ms · ${counts.info} informational ${counts.info === 1 ? "signal" : "signals"}</div>
+        <div class="summary-meta">${esc(band.label)} · ${result.detectorsRun.length} checks · ${result.durationMs}ms · ${counts.info} informational ${counts.info === 1 ? "signal" : "signals"}${result.diagnostics.incomplete ? " · INCOMPLETE" : ""}</div>
         <div class="next"><strong>Next step:</strong> ${esc(nextAction)}</div>
       </div>
     </section>
@@ -342,7 +358,9 @@ export function formatHtmlReport(
               ${filters}
             </div>
             <div id="finding-list">${allHtml}</div>`
-          : `<div class="empty"><strong>No high-confidence risks detected.</strong><br/>The score does not replace tests, code review, or threat modeling.</div>`
+          : result.diagnostics.incomplete
+            ? `<div class="empty"><strong>No risks detected in the analyzed inputs, but analysis is incomplete.</strong><br/>Resolve the incomplete checks before treating this result as verified.</div>`
+            : `<div class="empty"><strong>No high-confidence risks detected.</strong><br/>The score does not replace tests, code review, or threat modeling.</div>`
       }
     </section>
 
@@ -351,6 +369,15 @@ export function formatHtmlReport(
         ? `<details class="coverage">
              <summary>Partial coverage: ${result.detectorsSkipped.length} ${result.detectorsSkipped.length === 1 ? "check was" : "checks were"} skipped</summary>
              ${skips}
+           </details>`
+        : ""
+    }
+
+    ${
+      incompleteIssues
+        ? `<details class="coverage" open>
+             <summary>Incomplete analysis: ${result.diagnostics.issues.length} ${result.diagnostics.issues.length === 1 ? "input was" : "inputs were"} not fully analyzed</summary>
+             ${incompleteIssues}
            </details>`
         : ""
     }
