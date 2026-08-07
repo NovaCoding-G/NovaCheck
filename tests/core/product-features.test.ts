@@ -96,6 +96,51 @@ describe("SARIF reporter", () => {
     expect(sarif.runs[0].invocations[0].properties.policyFailures).toHaveLength(
       1,
     );
+    expect(sarif.runs[0].properties.informationalSignals).toEqual([]);
+  });
+
+  test("keeps location-less signals out of Code Scanning results", () => {
+    const withTrailer: ScanResult = {
+      ...result(),
+      findings: [
+        ...result().findings,
+        {
+          id: "ai-presence:trailer:abc",
+          detectorId: "ai-presence",
+          severity: "info",
+          title: "AI signal in commit: Co-authored-by: Cursor",
+          explanation: "Commit history contains an AI tooling trailer.",
+          fixPrompt: "Review AI-assisted changes before shipping.",
+          evidence: "Co-authored-by: Cursor",
+          metadata: { source: "git-trailer" },
+        },
+      ],
+    };
+
+    const sarif = JSON.parse(formatSarifReport(withTrailer));
+    const results = sarif.runs[0].results as Array<{
+      locations?: unknown[];
+      ruleId: string;
+    }>;
+
+    expect(results).toHaveLength(2);
+    for (const item of results) {
+      expect(Array.isArray(item.locations)).toBe(true);
+      expect(item.locations!.length).toBeGreaterThanOrEqual(1);
+    }
+    expect(
+      results.some((item) => item.ruleId.includes("ai-presence")),
+    ).toBe(false);
+    expect(sarif.runs[0].properties.informationalSignals).toEqual([
+      {
+        id: "ai-presence:trailer:abc",
+        detectorId: "ai-presence",
+        severity: "info",
+        title: "AI signal in commit: Co-authored-by: Cursor",
+        evidence: "Co-authored-by: Cursor",
+        metadata: { source: "git-trailer" },
+      },
+    ]);
   });
 });
 
