@@ -43,6 +43,8 @@ function result(): ScanResult {
     detectorsRun: ["dangerous-sinks", "secrets"],
     detectorsSkipped: [],
     diagnostics: {
+      incomplete: false,
+      issues: [],
       detectors: [
         {
           detectorId: "dangerous-sinks",
@@ -145,6 +147,37 @@ describe("SARIF reporter", () => {
 });
 
 describe("policy", () => {
+  test("can fail closed when analysis is incomplete", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "novacheck-policy-"));
+    try {
+      await writeFile(
+        join(dir, ".novacheck.yml"),
+        "minimumScore: 85\nfailOnIncomplete: true\n",
+      );
+      const loaded = await loadPolicy(dir);
+      const incomplete: ScanResult = {
+        ...result(),
+        diagnostics: {
+          ...result().diagnostics,
+          incomplete: true,
+          issues: [
+            {
+              detectorId: "ghost-deps",
+              code: "registry-lookup-failed",
+              message: "Could not verify npm package.",
+            },
+          ],
+        },
+      };
+      expect(loaded.policy.failOnIncomplete).toBe(true);
+      expect(policyFailureReasons(incomplete, loaded.policy, 85)).toContain(
+        "Scan incomplete: 1 input could not be analyzed",
+      );
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
   test("loads YAML and ignores configured paths", async () => {
     const dir = await mkdtemp(join(tmpdir(), "novacheck-policy-"));
     try {

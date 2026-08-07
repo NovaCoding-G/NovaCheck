@@ -63,6 +63,8 @@ export function formatSarifReport(
               durationMs: result.durationMs,
               policyPassed,
               policyFailures,
+              scanIncomplete: result.diagnostics.incomplete,
+              diagnosticIssues: result.diagnostics.issues,
             },
           },
         ],
@@ -79,6 +81,8 @@ export function formatSarifReport(
           minimumScore: options.minimumScore,
           failOn: options.failOn ?? [],
           scope: options.scope ?? { mode: "full" },
+          scanIncomplete: result.diagnostics.incomplete,
+          diagnosticIssues: result.diagnostics.issues,
           informationalSignals: informationalSignals.map(
             summarizeInformationalSignal,
           ),

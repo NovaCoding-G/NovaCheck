@@ -38,6 +38,8 @@ function fakeResult(overrides: Partial<ScanResult> = {}): ScanResult {
       { id: "ai-unreviewed", reason: "No provenance found" },
     ],
     diagnostics: {
+      incomplete: false,
+      issues: [],
       detectors: [
         {
           detectorId: "ghost-deps",
@@ -214,6 +216,32 @@ describe("runScan orchestration", () => {
         { id: "skipper", reason: "niente da fare" },
       ]);
       expect(result.trustScore).toBe(100);
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
+  test("records degraded detectors and incomplete inputs", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "novacheck-degraded-"));
+    try {
+      const stub: Detector = {
+        id: "networked",
+        name: "Networked",
+        description: "test",
+        async run(ctx) {
+          ctx.reportIssue({
+            detectorId: "networked",
+            code: "lookup-failed",
+            message: "A required lookup failed.",
+          });
+          return [];
+        },
+      };
+      const result = await runScan({ rootDir: dir, detectors: [stub] });
+      expect(result.diagnostics.incomplete).toBe(true);
+      expect(result.diagnostics.issues).toHaveLength(1);
+      expect(result.diagnostics.detectors[0]?.status).toBe("degraded");
+      expect(formatTerminalReport(result)).toContain("INCOMPLETE");
     } finally {
       await rm(dir, { recursive: true, force: true });
     }

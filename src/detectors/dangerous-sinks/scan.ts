@@ -32,6 +32,14 @@ export interface DangerousSinksScanResult {
   discoveryPatterns: string[];
 }
 
+export interface DangerousSinksScanOptions {
+  onIssue?: (issue: {
+    code: string;
+    message: string;
+    file: string;
+  }) => void;
+}
+
 function toFinding(m: SinkMatch): Finding {
   return {
     id: `dangerous-sinks:${m.ruleId}:${m.file}:${m.line}:${m.column}`,
@@ -89,6 +97,7 @@ export async function analyzeSource(
 
 export async function runDangerousSinksScan(
   rootDir: string,
+  options: DangerousSinksScanOptions = {},
 ): Promise<DangerousSinksScanResult> {
   const files = await listTextFiles(rootDir);
   const findings: Finding[] = [];
@@ -103,6 +112,11 @@ export async function runDangerousSinksScan(
     try {
       content = await readFile(abs, "utf8");
     } catch {
+      options.onIssue?.({
+        code: "dangerous-sinks-read-failed",
+        message: `The dangerous-sinks detector could not read "${rel}".`,
+        file: rel,
+      });
       continue;
     }
     try {
@@ -110,7 +124,12 @@ export async function runDangerousSinksScan(
       filesAnalyzed++;
       analyzedPaths.push(abs);
     } catch {
-      // Parse failures: skip file (precision — don't invent findings)
+      // Parse failures do not invent findings, but must degrade completeness.
+      options.onIssue?.({
+        code: "dangerous-sinks-parse-failed",
+        message: `The dangerous-sinks detector could not parse "${rel}".`,
+        file: rel,
+      });
     }
   }
 

@@ -1,6 +1,7 @@
 minimumScore: 85
 failOn:
   - critical
+failOnIncomplete: true
 ignore:
   paths:
     - tests/fixtures/**

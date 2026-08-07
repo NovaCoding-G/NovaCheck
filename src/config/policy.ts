@@ -15,6 +15,8 @@ const SEVERITIES = new Set<Severity>([
 export interface NovaCheckPolicy {
   minimumScore?: number;
   failOn?: Severity[];
+  /** Fail the policy when one or more inputs could not be analyzed. */
+  failOnIncomplete?: boolean;
   ignore?: {
     detectors?: string[];
     findings?: string[];
@@ -115,6 +117,11 @@ export function policyFailureReasons(
       reasons.push(`${count} ${severity}-severity ${count === 1 ? "finding" : "findings"}`);
     }
   }
+  if (policy.failOnIncomplete && result.diagnostics.incomplete) {
+    reasons.push(
+      `Scan incomplete: ${result.diagnostics.issues.length} ${result.diagnostics.issues.length === 1 ? "input could" : "inputs could"} not be analyzed`,
+    );
+  }
   return reasons;
 }
 
@@ -123,7 +130,12 @@ function validatePolicy(value: unknown, path: string): NovaCheckPolicy {
     throw new Error(`Invalid NovaCheck policy (${path}): expected an object.`);
   }
   const raw = value as Record<string, unknown>;
-  const allowed = new Set(["minimumScore", "failOn", "ignore"]);
+  const allowed = new Set([
+    "minimumScore",
+    "failOn",
+    "failOnIncomplete",
+    "ignore",
+  ]);
   const unknown = Object.keys(raw).filter((key) => !allowed.has(key));
   if (unknown.length > 0) {
     throw new Error(
@@ -153,6 +165,14 @@ function validatePolicy(value: unknown, path: string): NovaCheckPolicy {
         `Invalid NovaCheck policy (${path}): unknown severities: ${invalid.join(", ")}.`,
       );
     }
+  }
+  if (raw.failOnIncomplete !== undefined) {
+    if (typeof raw.failOnIncomplete !== "boolean") {
+      throw new Error(
+        `Invalid NovaCheck policy (${path}): failOnIncomplete must be a boolean.`,
+      );
+    }
+    policy.failOnIncomplete = raw.failOnIncomplete;
   }
   if (raw.ignore !== undefined) {
     if (!raw.ignore || typeof raw.ignore !== "object" || Array.isArray(raw.ignore)) {

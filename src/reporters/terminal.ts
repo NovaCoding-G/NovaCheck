@@ -88,6 +88,7 @@ export function formatTerminalReport(
     verbose?: boolean;
     minimumScore?: number;
     failOn?: Severity[];
+    failOnIncomplete?: boolean;
   } = {},
 ): string {
   const band = scoreBand(result.trustScore);
@@ -98,8 +99,9 @@ export function formatTerminalReport(
   const status = scanStatus(
     result.trustScore,
     counts,
-    options.minimumScore ?? 70,
+    options.minimumScore ?? 85,
     options.failOn ?? [],
+    Boolean(options.failOnIncomplete && result.diagnostics.incomplete),
   );
   const lines: string[] = [];
 
@@ -118,6 +120,12 @@ export function formatTerminalReport(
       `${scoreColor(result.trustScore)}${ansi.bold}${result.trustScore}/100${ansi.reset}  ` +
       `${scoreBar(result.trustScore)}  ${ansi.dim}${band.label}${ansi.reset}`,
   );
+  if (result.diagnostics.incomplete) {
+    lines.push(
+      `${ansi.yellow}${ansi.bold}INCOMPLETE${ansi.reset}  ` +
+        `${result.diagnostics.issues.length} ${result.diagnostics.issues.length === 1 ? "input was" : "inputs were"} not fully analyzed`,
+    );
+  }
   lines.push(
     `${actionable.length} ${actionable.length === 1 ? "risk" : "risks"} to review · ` +
       `${infoCount} informational ${infoCount === 1 ? "signal" : "signals"} · ` +
@@ -176,6 +184,23 @@ export function formatTerminalReport(
     }
   }
 
+  if (result.diagnostics.issues.length > 0) {
+    lines.push("");
+    lines.push(`${ansi.yellow}${ansi.bold}Incomplete analysis${ansi.reset}`);
+    for (const issue of result.diagnostics.issues.slice(0, 20)) {
+      const where = issue.file ? ` (${issue.file})` : "";
+      lines.push(
+        `  ${ansi.dim}${issue.detectorId}/${issue.code}${where}: ${issue.message}${ansi.reset}`,
+      );
+    }
+    const hidden = result.diagnostics.issues.length - 20;
+    if (hidden > 0) {
+      lines.push(
+        `  ${ansi.dim}… ${hidden} more incomplete ${hidden === 1 ? "input" : "inputs"} in HTML/SARIF diagnostics${ansi.reset}`,
+      );
+    }
+  }
+
   if (infoCount > 0) {
     lines.push("");
     lines.push(
@@ -202,11 +227,17 @@ function scanStatus(
   counts: Record<Severity, number>,
   minimumScore: number,
   failOn: readonly Severity[],
+  incompleteGateFailed: boolean,
 ): { label: string; color: string } {
   const severityGateFailed = failOn.some(
     (severity) => counts[severity] > 0,
   );
-  if (counts.critical > 0 || score < minimumScore || severityGateFailed) {
+  if (
+    counts.critical > 0 ||
+    score < minimumScore ||
+    severityGateFailed ||
+    incompleteGateFailed
+  ) {
     return { label: "BLOCKED", color: ansi.red };
   }
   if (counts.high > 0 || counts.medium > 0) {

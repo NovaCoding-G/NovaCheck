@@ -17,7 +17,16 @@ export function createSecretsDetector(
     description:
       "Finds plaintext API keys, tokens, passwords, and connection strings using secretlint and contextual entropy.",
     async run(ctx: ScanContext): Promise<Finding[]> {
-      const result = await runSecretsScan(ctx.rootDir, options);
+      const result = await runSecretsScan(ctx.rootDir, {
+        ...options,
+        onIssue: (issue) => {
+          options.onIssue?.(issue);
+          ctx.reportIssue({
+            detectorId: "secrets",
+            ...issue,
+          });
+        },
+      });
       ctx.recordStats({
         detectorId: "secrets",
         name: "Hardcoded secrets",
