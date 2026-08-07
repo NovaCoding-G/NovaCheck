@@ -1,5 +1,9 @@
 # NovaCheck
 
+<p align="center">
+  <img src="docs/assets/IMG_0966.png"
+
+
 [![CI](https://img.shields.io/github/actions/workflow/status/NovaCoding-G/NovaCheck/ci.yml?branch=main&label=CI&logo=github)](https://github.com/NovaCoding-G/NovaCheck/actions/workflows/ci.yml)
 [![npm version](https://img.shields.io/npm/v/novacheck?logo=npm&color=cb3837)](https://www.npmjs.com/package/novacheck)
 [![npm downloads](https://img.shields.io/npm/dm/novacheck?logo=npm)](https://www.npmjs.com/package/novacheck)
@@ -10,9 +14,6 @@
 [![Local-first](https://img.shields.io/badge/privacy-local--first-16794b)](#privacy--design-principles)
 [![npx](https://img.shields.io/badge/npx-novacheck-black?logo=npm)](https://www.npmjs.com/package/novacheck)
 [![GitHub stars](https://img.shields.io/github/stars/NovaCoding-G/NovaCheck?style=social)](https://github.com/NovaCoding-G/NovaCheck)
-
-<p align="center">
-  <img src="docs/assets/IMG_0966.png"
 
 **Run this before shipping AI-generated code.**
 
