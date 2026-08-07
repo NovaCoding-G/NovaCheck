@@ -93,9 +93,11 @@ describe("analyzeSource JS/TS", () => {
   test("does not flag literal exec or parameterized query alone", async () => {
     const findings = await analyzeSource(
       `
-import { exec, spawn } from "node:child_process";
+import { exec, execFile, execFileSync, spawn } from "node:child_process";
 exec("ls -la");
 spawn("ls", ["-la"]);
+execFile(toolPath, ["--version"]);
+execFileSync(process.execPath, [scriptPath, "--check"]);
 db.query("SELECT 1", []);
 `,
       "safe.ts",

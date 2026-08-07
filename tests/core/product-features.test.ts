@@ -173,6 +173,16 @@ describe("policy", () => {
       expect(policyFailureReasons(incomplete, loaded.policy, 85)).toContain(
         "Scan incomplete: 1 input could not be analyzed",
       );
+      const ignored = applyPolicy(incomplete, {
+        ...loaded.policy,
+        ignore: { detectors: ["ghost-deps"] },
+      });
+      expect(ignored.diagnostics.incomplete).toBe(false);
+      expect(
+        policyFailureReasons(ignored, loaded.policy, 85).some((reason) =>
+          reason.startsWith("Scan incomplete:"),
+        ),
+      ).toBe(false);
     } finally {
       await rm(dir, { recursive: true, force: true });
     }

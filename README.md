@@ -255,7 +255,7 @@ Development uses [Bun](https://bun.sh):
 ```bash
 bun install
 bun run check          # typecheck + tests + build + CLI smoke
-bun run src/cli.ts . --offline
+bun run src/cli.ts . --offline --allow-incomplete
 ```
 
 Maintainers: see [the release runbook](./docs/releasing.md) and

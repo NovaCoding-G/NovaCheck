@@ -81,6 +81,12 @@ export function applyPolicy(
     ),
   );
   const counts = countByDetector(findings);
+  const issues = result.diagnostics.issues.filter(
+    (issue) =>
+      !ignoredDetectors.has(issue.detectorId) &&
+      !isIgnoredPath(issue.file, ignoredPaths),
+  );
+  const degradedDetectors = new Set(issues.map((issue) => issue.detectorId));
 
   return {
     ...result,
@@ -88,8 +94,15 @@ export function applyPolicy(
     findings,
     diagnostics: {
       ...result.diagnostics,
+      incomplete: issues.length > 0,
+      issues,
       detectors: result.diagnostics.detectors.map((detector) => ({
         ...detector,
+        status:
+          detector.status === "degraded" &&
+          !degradedDetectors.has(detector.detectorId)
+            ? "ran"
+            : detector.status,
         findingsCount: counts.get(detector.detectorId) ?? 0,
       })),
     },
