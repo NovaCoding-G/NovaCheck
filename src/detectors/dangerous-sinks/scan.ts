@@ -99,7 +99,7 @@ export async function runDangerousSinksScan(
   rootDir: string,
   options: DangerousSinksScanOptions = {},
 ): Promise<DangerousSinksScanResult> {
-  const files = await listTextFiles(rootDir);
+  const files = await listTextFiles(rootDir, undefined, options.onIssue);
   const findings: Finding[] = [];
   let filesAnalyzed = 0;
   const analyzedPaths: string[] = [];

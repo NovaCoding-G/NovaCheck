@@ -311,6 +311,11 @@ export async function runGhostDepsAnalysis(
   registry: RegistryClient,
   options: GhostDepsOptions = {},
   now = new Date(),
+  onIssue?: (issue: {
+    code: string;
+    message: string;
+    file: string;
+  }) => void,
 ): Promise<GhostDepsScanResult> {
   const opts: Required<GhostDepsOptions> = {
     maxAgeDays: options.maxAgeDays ?? DEFAULTS.maxAgeDays,
@@ -331,6 +336,15 @@ export async function runGhostDepsAnalysis(
       // Blind packages still get a registry lookup when possible, so we can
       // confirm nonexistence and attach the "possible alias" note at HIGH.
       const info = await registry.lookup(pkg.ecosystem, pkg.name);
+      if (info.exists === undefined) {
+        onIssue?.({
+          code: info.lookupIssue?.code ?? "registry-lookup-unknown",
+          message:
+            info.lookupIssue?.message ??
+            `Could not verify ${pkg.ecosystem} package "${pkg.name}".`,
+          file: pkg.file,
+        });
+      }
       return analyzePackage(pkg, info, opts, now);
     },
   );
@@ -352,10 +366,17 @@ async function mapWithConcurrency<T, R>(
 ): Promise<R[]> {
   const results = new Array<R>(values.length);
   let nextIndex = 0;
+  let stopped = false;
+  let firstError: unknown;
   const worker = async (): Promise<void> => {
-    while (nextIndex < values.length) {
+    while (!stopped && nextIndex < values.length) {
       const index = nextIndex++;
-      results[index] = await fn(values[index]!);
+      try {
+        results[index] = await fn(values[index]!);
+      } catch (error) {
+        stopped = true;
+        firstError ??= error;
+      }
     }
   };
   await Promise.all(
@@ -364,5 +385,6 @@ async function mapWithConcurrency<T, R>(
       () => worker(),
     ),
   );
+  if (firstError !== undefined) throw firstError;
   return results;
 }

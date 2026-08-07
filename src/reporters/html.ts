@@ -104,7 +104,9 @@ export function formatHtmlReport(
     .join("");
 
   const nextAction =
-    counts.critical > 0
+    result.diagnostics.incomplete
+      ? "Resolve incomplete checks or rerun the scan before treating this result as verified."
+      : counts.critical > 0
       ? `Fix the ${counts.critical} critical ${counts.critical === 1 ? "finding" : "findings"} before shipping.`
       : counts.high > 0
         ? `Review the ${counts.high} high-severity ${counts.high === 1 ? "finding" : "findings"} before merging.`

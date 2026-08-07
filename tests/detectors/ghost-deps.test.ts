@@ -361,6 +361,24 @@ describe("analyzePackage (Phase 2 severity)", () => {
 });
 
 describe("runGhostDepsAnalysis (integration)", () => {
+  test("attaches unknown registry diagnostics to source files", async () => {
+    const issues: Array<{ code: string; file: string }> = [];
+    await runGhostDepsAnalysis(
+      join(FIXTURES, "npm-project"),
+      {
+        async lookup(ecosystem, name) {
+          return { name, ecosystem, exists: undefined };
+        },
+      },
+      {},
+      new Date("2026-07-16T12:00:00.000Z"),
+      (issue) => issues.push(issue),
+    );
+    expect(issues.length).toBeGreaterThan(0);
+    expect(issues.every((issue) => issue.file.length > 0)).toBe(true);
+    expect(issues.some((issue) => issue.file === "package.json")).toBe(true);
+  });
+
   test("npm fixture: import-only ghost is CRITICAL", async () => {
     const registry = fakeRegistry({
       "npm:react": {

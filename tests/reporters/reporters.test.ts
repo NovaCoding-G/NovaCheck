@@ -241,7 +241,11 @@ describe("runScan orchestration", () => {
       expect(result.diagnostics.incomplete).toBe(true);
       expect(result.diagnostics.issues).toHaveLength(1);
       expect(result.diagnostics.detectors[0]?.status).toBe("degraded");
-      expect(formatTerminalReport(result)).toContain("INCOMPLETE");
+      const terminal = formatTerminalReport(result, { verbose: true });
+      expect(terminal).toContain("INCOMPLETE");
+      expect(terminal).toContain("degraded");
+      expect(terminal).toContain("Resolve incomplete checks");
+      expect(formatHtmlReport(result)).toContain("Resolve incomplete checks");
     } finally {
       await rm(dir, { recursive: true, force: true });
     }

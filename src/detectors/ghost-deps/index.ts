@@ -55,17 +55,18 @@ export function createGhostDepsDetector(
           cache: new RegistryCache(ctx.cacheDir),
           offline: ctx.offline,
           signal: ctx.signal,
-          onIssue: (issue) =>
-            ctx.reportIssue({
-              detectorId: "ghost-deps",
-              ...issue,
-            }),
         });
 
       const result = await runGhostDepsAnalysis(
         ctx.rootDir,
         registry,
         options,
+        new Date(),
+        (issue) =>
+          ctx.reportIssue({
+            detectorId: "ghost-deps",
+            ...issue,
+          }),
       );
       ctx.recordStats({
         detectorId: "ghost-deps",

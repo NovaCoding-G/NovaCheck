@@ -9,7 +9,13 @@ export interface HttpRegistryClientOptions {
   timeoutMs?: number;
   maxRetries?: number;
   retryBaseDelayMs?: number;
-  onIssue?: (issue: { code: string; message: string }) => void;
+}
+
+interface JsonResponse<T> {
+  ok: boolean;
+  status: number;
+  headers: Headers;
+  data?: T;
 }
 
 /**
@@ -24,7 +30,6 @@ export class HttpRegistryClient implements RegistryClient {
   private readonly timeoutMs: number;
   private readonly maxRetries: number;
   private readonly retryBaseDelayMs: number;
-  private readonly onIssue?: HttpRegistryClientOptions["onIssue"];
 
   constructor(options: HttpRegistryClientOptions) {
     this.cache = options.cache;
@@ -34,7 +39,6 @@ export class HttpRegistryClient implements RegistryClient {
     this.timeoutMs = options.timeoutMs ?? 10_000;
     this.maxRetries = options.maxRetries ?? 2;
     this.retryBaseDelayMs = options.retryBaseDelayMs ?? 250;
-    this.onIssue = options.onIssue;
   }
 
   async lookup(ecosystem: Ecosystem, name: string): Promise<PackageInfo> {
@@ -42,11 +46,12 @@ export class HttpRegistryClient implements RegistryClient {
     if (cached) return cached;
 
     if (this.offline) {
-      this.onIssue?.({
-        code: "registry-offline-cache-miss",
-        message: `Could not verify ${ecosystem} package "${name}" because offline mode had no cached response.`,
-      });
-      return { name, ecosystem, exists: undefined };
+      return unknownPackage(
+        ecosystem,
+        name,
+        "offline mode had no cached response",
+        "registry-offline-cache-miss",
+      );
     }
 
     const info =
@@ -65,42 +70,40 @@ export class HttpRegistryClient implements RegistryClient {
       .map((p) => encodeURIComponent(p))
       .join("/");
 
-    const metaRes = await this.request(
+    const metaRes = await this.requestJson<{
+      time?: Record<string, string>;
+    }>(
       `https://registry.npmjs.org/${encoded}`,
       { headers: { Accept: "application/json" } },
     );
 
     if (!metaRes) {
-      this.reportLookupFailure("npm", name, "network error or timeout");
-      return { name, ecosystem: "npm", exists: undefined };
+      return unknownPackage("npm", name, "network error, invalid body, or timeout");
     }
 
     if (metaRes.status === 404) {
       return { name, ecosystem: "npm", exists: false };
     }
     if (!metaRes.ok) {
-      this.reportLookupFailure("npm", name, `HTTP ${metaRes.status}`);
-      return { name, ecosystem: "npm", exists: undefined };
+      return unknownPackage("npm", name, `HTTP ${metaRes.status}`);
     }
 
-    const meta = (await metaRes.json()) as {
-      time?: Record<string, string>;
-    };
+    const meta = metaRes.data ?? {};
 
     const createdRaw = meta.time?.created;
     const createdAt = createdRaw ? new Date(createdRaw) : undefined;
 
     let weeklyDownloads: number | undefined;
     try {
-      const dlRes = await this.request(
+      const dlRes = await this.requestJson<{ downloads?: number }>(
         `https://api.npmjs.org/downloads/point/last-week/${encoded}`,
         {},
       );
       if (dlRes?.ok) {
-        const dl = (await dlRes.json()) as { downloads?: number };
-        weeklyDownloads = dl.downloads;
+        weeklyDownloads = dlRes.data?.downloads;
       }
-    } catch {
+    } catch (error) {
+      if (this.signal?.aborted) throw error;
       // downloads are optional for the heuristic
     }
 
@@ -114,28 +117,29 @@ export class HttpRegistryClient implements RegistryClient {
   }
 
   private async lookupPypi(name: string): Promise<PackageInfo> {
-    const res = await this.request(
+    const res = await this.requestJson<{
+      info?: { name?: string };
+      releases?: Record<
+        string,
+        Array<{ upload_time_iso_8601?: string; upload_time?: string }>
+      >;
+      urls?: Array<{ uploads?: unknown }>;
+    }>(
       `https://pypi.org/pypi/${encodeURIComponent(name)}/json`,
       { headers: { Accept: "application/json" } },
     );
 
     if (!res) {
-      this.reportLookupFailure("pypi", name, "network error or timeout");
-      return { name, ecosystem: "pypi", exists: undefined };
+      return unknownPackage("pypi", name, "network error, invalid body, or timeout");
     }
     if (res.status === 404) {
       return { name, ecosystem: "pypi", exists: false };
     }
     if (!res.ok) {
-      this.reportLookupFailure("pypi", name, `HTTP ${res.status}`);
-      return { name, ecosystem: "pypi", exists: undefined };
+      return unknownPackage("pypi", name, `HTTP ${res.status}`);
     }
 
-    const data = (await res.json()) as {
-      info?: { name?: string };
-      releases?: Record<string, Array<{ upload_time_iso_8601?: string; upload_time?: string }>>;
-      urls?: Array<{ uploads?: unknown }>;
-    };
+    const data = res.data ?? {};
 
     let createdAt: Date | undefined;
     const releases = data.releases ?? {};
@@ -158,21 +162,10 @@ export class HttpRegistryClient implements RegistryClient {
     };
   }
 
-  private reportLookupFailure(
-    ecosystem: Ecosystem,
-    name: string,
-    reason: string,
-  ): void {
-    this.onIssue?.({
-      code: "registry-lookup-failed",
-      message: `Could not verify ${ecosystem} package "${name}": ${reason}.`,
-    });
-  }
-
-  private async request(
+  private async requestJson<T>(
     url: string,
     init: RequestInit,
-  ): Promise<Response | undefined> {
+  ): Promise<JsonResponse<T> | undefined> {
     for (let attempt = 0; attempt <= this.maxRetries; attempt++) {
       const timed = createTimedSignal(this.signal, this.timeoutMs);
       try {
@@ -195,7 +188,20 @@ export class HttpRegistryClient implements RegistryClient {
           );
           continue;
         }
-        return response;
+        if (!response.ok) {
+          return {
+            ok: false,
+            status: response.status,
+            headers: response.headers,
+          };
+        }
+        const data = await readJsonWithSignal<T>(response, timed.signal);
+        return {
+          ok: true,
+          status: response.status,
+          headers: response.headers,
+          data,
+        };
       } catch (error) {
         if (this.signal?.aborted) throw error;
         if (attempt >= this.maxRetries) return undefined;
@@ -213,6 +219,23 @@ export class HttpRegistryClient implements RegistryClient {
 
 function isRetryableStatus(status: number): boolean {
   return status === 429 || status >= 500;
+}
+
+function unknownPackage(
+  ecosystem: Ecosystem,
+  name: string,
+  reason: string,
+  code = "registry-lookup-failed",
+): PackageInfo {
+  return {
+    name,
+    ecosystem,
+    exists: undefined,
+    lookupIssue: {
+      code,
+      message: `Could not verify ${ecosystem} package "${name}": ${reason}.`,
+    },
+  };
 }
 
 function retryAfterMs(response: Response): number | undefined {
@@ -243,6 +266,31 @@ function createTimedSignal(
       parent?.removeEventListener("abort", abortFromParent);
     },
   };
+}
+
+async function readJsonWithSignal<T>(
+  response: Response,
+  signal: AbortSignal,
+): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const abort = () =>
+      reject(signal.reason ?? new Error("Registry request aborted"));
+    if (signal.aborted) {
+      abort();
+      return;
+    }
+    signal.addEventListener("abort", abort, { once: true });
+    response.json().then(
+      (value) => {
+        signal.removeEventListener("abort", abort);
+        resolve(value as T);
+      },
+      (error) => {
+        signal.removeEventListener("abort", abort);
+        reject(error);
+      },
+    );
+  });
 }
 
 async function delay(ms: number, signal?: AbortSignal): Promise<void> {

@@ -37,7 +37,11 @@ export async function runSecretsScan(
   rootDir: string,
   options: SecretsScanOptions = {},
 ): Promise<SecretsScanResult> {
-  const files = await listTextFiles(rootDir, options.maxFileBytes);
+  const files = await listTextFiles(
+    rootDir,
+    options.maxFileBytes,
+    options.onIssue,
+  );
   const findings: Finding[] = [];
   const occupiedLines = new Set<string>();
   let filesAnalyzed = 0;

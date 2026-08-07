@@ -76,12 +76,10 @@ describe("HttpRegistryClient resilience", () => {
   test("reports timeout and does not cache unknown lookups", async () => {
     const dir = await mkdtemp(join(tmpdir(), "novacheck-registry-"));
     try {
-      const issues: string[] = [];
       const client = new HttpRegistryClient({
         cache: new RegistryCache(dir),
         timeoutMs: 5,
         maxRetries: 0,
-        onIssue: (issue) => issues.push(issue.code),
         fetchImpl: ((_input: string | URL | Request, init?: RequestInit) =>
           new Promise<Response>((_resolve, reject) => {
             init?.signal?.addEventListener(
@@ -94,7 +92,7 @@ describe("HttpRegistryClient resilience", () => {
 
       const info = await client.lookup("npm", "never-responds");
       expect(info.exists).toBeUndefined();
-      expect(issues).toEqual(["registry-lookup-failed"]);
+      expect(info.lookupIssue?.code).toBe("registry-lookup-failed");
       expect(
         await new RegistryCache(dir).get("npm", "never-responds"),
       ).toBeUndefined();
@@ -106,15 +104,70 @@ describe("HttpRegistryClient resilience", () => {
   test("marks offline cache misses as incomplete", async () => {
     const dir = await mkdtemp(join(tmpdir(), "novacheck-registry-"));
     try {
-      const issues: string[] = [];
       const client = new HttpRegistryClient({
         cache: new RegistryCache(dir),
         offline: true,
-        onIssue: (issue) => issues.push(issue.code),
       });
       const info = await client.lookup("pypi", "missing-cache-entry");
       expect(info.exists).toBeUndefined();
-      expect(issues).toEqual(["registry-offline-cache-miss"]);
+      expect(info.lookupIssue?.code).toBe("registry-offline-cache-miss");
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
+  test("applies timeout while reading a stalled response body", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "novacheck-registry-"));
+    try {
+      const client = new HttpRegistryClient({
+        cache: new RegistryCache(dir),
+        timeoutMs: 5,
+        maxRetries: 0,
+        fetchImpl: (async () =>
+          ({
+            ok: true,
+            status: 200,
+            headers: new Headers(),
+            json: () => new Promise<never>(() => {}),
+          }) as unknown as Response) as unknown as typeof fetch,
+      });
+      const started = Date.now();
+      const info = await client.lookup("npm", "stalled-body");
+      expect(Date.now() - started).toBeLessThan(200);
+      expect(info.exists).toBeUndefined();
+      expect(info.lookupIssue?.code).toBe("registry-lookup-failed");
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
+  test("propagates cancellation during optional download lookup", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "novacheck-registry-"));
+    try {
+      const controller = new AbortController();
+      const client = new HttpRegistryClient({
+        cache: new RegistryCache(dir),
+        signal: controller.signal,
+        maxRetries: 0,
+        fetchImpl: (async (input: string | URL | Request, init?: RequestInit) => {
+          if (!String(input).includes("/downloads/")) {
+            return Response.json({
+              time: { created: "2013-05-29T00:00:00.000Z" },
+            });
+          }
+          return new Promise<Response>((_resolve, reject) => {
+            init?.signal?.addEventListener(
+              "abort",
+              () => reject(init.signal?.reason),
+              { once: true },
+            );
+          });
+        }) as typeof fetch,
+      });
+
+      const lookup = client.lookup("npm", "react");
+      setTimeout(() => controller.abort(new Error("cancelled")), 5);
+      await expect(lookup).rejects.toThrow("cancelled");
     } finally {
       await rm(dir, { recursive: true, force: true });
     }

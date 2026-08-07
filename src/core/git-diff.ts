@@ -64,6 +64,13 @@ export function filterResultToChangedFiles(
       (counts.get(finding.detectorId) ?? 0) + 1,
     );
   }
+  const issues = result.diagnostics.issues.filter(
+    (issue) =>
+      !issue.file ||
+      issue.file === "." ||
+      changedFiles.has(normalizePath(issue.file)),
+  );
+  const degradedDetectors = new Set(issues.map((issue) => issue.detectorId));
 
   return {
     ...result,
@@ -71,8 +78,15 @@ export function filterResultToChangedFiles(
     findings,
     diagnostics: {
       ...result.diagnostics,
+      incomplete: issues.length > 0,
+      issues,
       detectors: result.diagnostics.detectors.map((detector) => ({
         ...detector,
+        status:
+          detector.status === "degraded" &&
+          !degradedDetectors.has(detector.detectorId)
+            ? "ran"
+            : detector.status,
         findingsCount: counts.get(detector.detectorId) ?? 0,
       })),
     },

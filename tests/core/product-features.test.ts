@@ -231,4 +231,41 @@ describe("changed-file scope", () => {
         ?.findingsCount,
     ).toBe(0);
   });
+
+  test("keeps only changed-file and repository-wide diagnostic issues", () => {
+    const base = result();
+    const filtered = filterResultToChangedFiles(
+      {
+        ...base,
+        diagnostics: {
+          ...base.diagnostics,
+          incomplete: true,
+          issues: [
+            {
+              detectorId: "ghost-deps",
+              code: "lookup-failed",
+              message: "Changed package could not be checked.",
+              file: "src/app.ts",
+            },
+            {
+              detectorId: "ghost-deps",
+              code: "lookup-failed",
+              message: "Unchanged package could not be checked.",
+              file: "package.json",
+            },
+            {
+              detectorId: "global",
+              code: "repository-failed",
+              message: "Repository-wide analysis failed.",
+            },
+          ],
+        },
+      },
+      new Set(["src/app.ts"]),
+    );
+    expect(filtered.diagnostics.issues.map((issue) => issue.detectorId)).toEqual(
+      ["ghost-deps", "global"],
+    );
+    expect(filtered.diagnostics.incomplete).toBe(true);
+  });
 });

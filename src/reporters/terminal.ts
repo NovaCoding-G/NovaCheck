@@ -63,7 +63,9 @@ export function formatVerboseDiagnostics(result: ScanResult): string {
     const status =
       det.status === "skipped"
         ? `${ansi.yellow}skipped${ansi.reset}${det.skipReason ? ` — ${det.skipReason}` : ""}`
-        : `${ansi.green}completed${ansi.reset}`;
+        : det.status === "degraded"
+          ? `${ansi.yellow}degraded${ansi.reset}`
+          : `${ansi.green}completed${ansi.reset}`;
     lines.push(
       `  ${ansi.bold}${det.detectorId}${ansi.reset} (${det.name}): ${status}`,
     );
@@ -137,7 +139,9 @@ export function formatTerminalReport(
 
   lines.push("");
   lines.push(`${ansi.bold}What to do next${ansi.reset}`);
-  lines.push(`  ${nextAction(counts, actionable.length)}`);
+  lines.push(
+    `  ${nextAction(counts, actionable.length, result.diagnostics.incomplete)}`,
+  );
 
   if (top.length > 0) {
     lines.push("");
@@ -249,7 +253,11 @@ function scanStatus(
 function nextAction(
   counts: Record<Severity, number>,
   actionableCount: number,
+  incomplete: boolean,
 ): string {
+  if (incomplete) {
+    return "Resolve incomplete checks or rerun the scan before treating this result as verified.";
+  }
   if (counts.critical > 0) {
     return `Fix the ${counts.critical} critical ${counts.critical === 1 ? "finding" : "findings"} first. Do not ship yet.`;
   }
