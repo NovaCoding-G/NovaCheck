@@ -1,5 +1,5 @@
 import { execFile } from "node:child_process";
-import { readFile } from "node:fs/promises";
+import { readFile, realpath } from "node:fs/promises";
 import { basename, join } from "node:path";
 import { promisify } from "node:util";
 import type { Finding } from "../../types/index.ts";
@@ -23,8 +23,10 @@ export interface EnvLeakScanResult {
 export async function runEnvLeakScan(
   rootDir: string,
 ): Promise<EnvLeakScanResult> {
+  // Canonicalize so Windows path forms from Git (C:/...) and Node (C:\...) match.
+  const root = await realpath(rootDir).catch(() => rootDir);
   const findings: Finding[] = [];
-  const allFiles = await listTextFiles(rootDir);
+  const allFiles = await listTextFiles(root);
   const files = allFiles.filter((file) => {
     const name = basename(file);
     return isEnvFamily(name) && !isTemplate(name);
@@ -32,16 +34,16 @@ export async function runEnvLeakScan(
   // Use full Git ignore/tracking only when scanning the repository root.
   // Nested scan roots (fixtures, package folders) fall back to local
   // `.gitignore` for ignore rules, but still detect files already tracked.
-  const gitToplevel = await gitToplevelOf(rootDir);
+  const gitToplevel = await gitToplevelOf(root);
   const scanIsGitRoot =
-    gitToplevel !== undefined && pathsEqual(gitToplevel, rootDir);
+    gitToplevel !== undefined && pathsEqual(gitToplevel, root);
 
   for (const abs of files) {
-    const rel = toRel(rootDir, abs);
+    const rel = toRel(root, abs);
     const status = scanIsGitRoot
-      ? await gitStatus(rootDir, rel)
+      ? await gitStatus(root, rel)
       : {
-          ignored: await fallbackIgnored(rootDir, rel),
+          ignored: await fallbackIgnored(root, rel),
           tracked:
             gitToplevel !== undefined
               ? await isTrackedUnder(gitToplevel, abs)
@@ -85,14 +87,16 @@ async function gitToplevelOf(rootDir: string): Promise<string | undefined> {
       { encoding: "utf8" },
     );
     const top = stdout.trim();
-    return top.length > 0 ? top : undefined;
+    if (!top) return undefined;
+    return await realpath(top).catch(() => top);
   } catch {
     return undefined;
   }
 }
 
 function pathsEqual(a: string, b: string): boolean {
-  const norm = (p: string) => p.replaceAll("\\", "/").replace(/\/+$/, "").toLowerCase();
+  const norm = (p: string) =>
+    p.replaceAll("\\", "/").replace(/\/+$/, "").toLowerCase();
   return norm(a) === norm(b);
 }
 

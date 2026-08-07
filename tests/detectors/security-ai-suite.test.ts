@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { execFileSync } from "node:child_process";
+import { mkdtemp, realpath, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createScanContext } from "../../src/core/create-context.ts";
@@ -9,6 +10,14 @@ import { createInsecureCryptoDetector } from "../../src/detectors/insecure-crypt
 import { createAiPresenceDetector } from "../../src/detectors/ai-presence/index.ts";
 import { analyzeSource } from "../../src/detectors/dangerous-sinks/index.ts";
 import { detectors } from "../../src/detectors/index.ts";
+
+function runGit(cwd: string, args: string[]): void {
+  execFileSync("git", args, {
+    cwd,
+    encoding: "utf8",
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+}
 
 const FIX = join(import.meta.dir, "../fixtures");
 
@@ -70,9 +79,13 @@ describe("env-leak", () => {
   });
 
   test("respects negations and still flags an ignored file tracked by Git", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "novacheck-env-git-"));
+    const dir = await realpath(
+      await mkdtemp(join(tmpdir(), "novacheck-env-git-")),
+    );
     try {
-      Bun.spawnSync(["git", "init"], { cwd: dir });
+      // Use execFileSync (not Bun.spawnSync) so failures surface on Windows CI
+      // instead of leaving .env untracked and silently skipped as ignored.
+      runGit(dir, ["init"]);
       await writeFile(
         join(dir, ".gitignore"),
         ".env*\n!.env.production\n",
@@ -83,7 +96,8 @@ describe("env-leak", () => {
         join(dir, ".env.production"),
         "SECRET=not-ignored-value\n",
       );
-      Bun.spawnSync(["git", "add", "-f", ".env"], { cwd: dir });
+      runGit(dir, ["add", "-f", "--", ".env"]);
+      runGit(dir, ["ls-files", "--error-unmatch", "--", ".env"]);
 
       const detector = createEnvLeakDetector();
       const { ctx } = createScanContext({ rootDir: dir });
