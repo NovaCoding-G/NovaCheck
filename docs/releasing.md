@@ -33,13 +33,18 @@ tags matching `v*`.
    ```
 
 4. Merge the release pull request into `main`.
-5. Create a GitHub Release from tag `vX.Y.Z`, using the changelog section as
-   release notes.
+5. Create a GitHub Release from tag `vX.Y.Z` on the `main` tip that contains
+   the release workflow, using the changelog section as release notes.
 
 Publishing the release triggers `.github/workflows/release.yml`. The workflow
 checks that the tag/version metadata match and that the tagged commit belongs
 to `main`, reruns the full quality gate, dry-runs the package, and publishes
 with npm provenance.
+
+If a release workflow fails before npm publish, delete that GitHub Release and
+its `vX.Y.Z` tag, merge the fix into `main`, then recreate the same release tag
+from the updated `main` tip. Re-running the failed job alone is not enough when
+the broken workflow file is the one checked out by the tag.
 
 ## Verify
 
