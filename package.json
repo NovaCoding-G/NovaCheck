@@ -1,6 +1,6 @@
 {
   "name": "novacheck",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Local-first CLI that scores trust & security of AI-generated projects before you publish.",
   "type": "module",
   "license": "MIT",
@@ -23,7 +23,8 @@
     "typecheck": "tsc --noEmit",
     "prebuild": "bun -e \"import { rmSync } from 'node:fs'; rmSync('dist', { recursive: true, force: true })\"",
     "build": "bun build src/cli.ts --target=node --packages=external --outdir=dist",
-    "check": "bun run typecheck && bun test && bun run build && bun run scripts/check-built-cli.ts",
+    "versioncheck": "bun run scripts/check-release-version.ts",
+    "check": "bun run versioncheck && bun run typecheck && bun test && bun run build && bun run scripts/check-built-cli.ts",
     "prepack": "bun run build"
   },
   "files": [

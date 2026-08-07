@@ -27,7 +27,7 @@ npx novacheck .
 
 > NovaCheck detects **explicit AI provenance**, not unreliable writing-style guesses.
 > Source code stays on your machine. Network access is only used for package
-> registries, and can be turned off with `--offline`.
+> registry metadata (package names only), and can be turned off with `--offline`.
 
 ---
 
@@ -121,6 +121,9 @@ npx novacheck . --offline
 
 # fail CI under a score threshold
 npx novacheck . --fail-below 85 --sarif
+
+# fail closed if a file or registry package could not be analyzed
+npx novacheck . --fail-on-incomplete
 ```
 
 ### Useful flags
@@ -165,9 +168,10 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - uses: NovaCoding-G/NovaCheck@v0.3.0
+      - uses: NovaCoding-G/NovaCheck@v0.4.0
         with:
           fail-below: "85"
+          fail-on-incomplete: "true"
           changed: "true"
           base: "origin/main"
 ```
@@ -175,6 +179,20 @@ jobs:
 The Action fails the job when policy is violated. SARIF upload is skipped on
 fork PRs that lack `security-events: write`, so external contributors do not
 break CI for a permissions issue.
+
+`changed: true` reports only risks attached to files introduced by the pull
+request. It is intentionally a diff gate, not a full-repository certification.
+Run an additional full scan on `main` (and optionally on a schedule):
+
+```yaml
+- uses: NovaCoding-G/NovaCheck@v0.4.0
+  with:
+    changed: "false"
+    fail-below: "85"
+    fail-on-incomplete: "true"
+```
+
+Release Action tags execute the same exact npm package as `npx novacheck`.
 
 ---
 
@@ -184,6 +202,7 @@ Create `.novacheck.yml` in the project root:
 
 ```yaml
 minimumScore: 85
+failOnIncomplete: true
 failOn:
   - critical
 ignore:
@@ -197,6 +216,8 @@ ignore:
 ```
 
 CLI flags override policy when both are set (e.g. `--fail-below`).
+Local scans warn on incomplete analysis by default; CI should set
+`failOnIncomplete: true` (or use `--fail-on-incomplete`) to fail closed.
 
 ---
 
@@ -236,6 +257,9 @@ bun install
 bun run check          # typecheck + tests + build + CLI smoke
 bun run src/cli.ts . --offline
 ```
+
+Maintainers: see [the release runbook](./docs/releasing.md) and
+[CHANGELOG.md](./CHANGELOG.md).
 
 ---
 
