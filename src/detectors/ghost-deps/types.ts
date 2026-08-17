@@ -9,13 +9,21 @@ export interface DeclaredPackage {
   file: string;
   line?: number;
   /** Where the name was discovered. */
-  source: "manifest" | "import";
+  source: PackageSource;
   /**
    * Raw specifier as written (import/require), or the bare name for manifests.
    * Used by Phase-1 resolvers (aliases, #imports, paths).
    */
   specifier: string;
+  /** Install command as written, for `docs` sources. */
+  command?: string;
 }
+
+/**
+ * `docs` covers install commands in prose (README, AGENTS.md, skill files):
+ * a name a human or coding agent is instructed to install.
+ */
+export type PackageSource = "manifest" | "import" | "docs";
 
 /** Package after Phase-1 resolution (excludes already filtered out). */
 export interface ResolvedPackage extends DeclaredPackage {

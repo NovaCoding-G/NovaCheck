@@ -1,7 +1,13 @@
 import { readdir, readFile } from "node:fs/promises";
 import { join, relative } from "node:path";
-import type { DeclaredPackage, Ecosystem } from "./types.ts";
+import type { DeclaredPackage, Ecosystem, PackageSource } from "./types.ts";
+import {
+  AGENT_DOC_DISCOVERY_PATTERNS,
+  collectDocInstallPackages,
+  isAgentDocFile,
+} from "./collect-docs.ts";
 import { normalizePackageName } from "./heuristics.ts";
+import { pypiDistributionForImport } from "./py-import-map.ts";
 import { extractPyprojectDependencies } from "./parse-pyproject.ts";
 import {
   isJsRuntimeBuiltin,
@@ -73,16 +79,58 @@ function rel(root: string, file: string): string {
   return relative(root, file).replaceAll("\\", "/");
 }
 
+/**
+ * Reporting preference for the same package found in several places:
+ * a manifest is the strongest declaration, an install command in docs is the
+ * most actionable prose reference, an import is the weakest signal.
+ */
+const SOURCE_RANK: Record<PackageSource, number> = {
+  manifest: 3,
+  docs: 2,
+  import: 1,
+};
+
 function addPkg(
   map: Map<string, DeclaredPackage>,
   pkg: DeclaredPackage,
 ): void {
   const key = `${pkg.ecosystem}:${normalizePackageName(pkg.name, pkg.ecosystem)}`;
   const existing = map.get(key);
-  // Prefer manifest declarations over imports for the same package.
-  if (!existing || (existing.source === "import" && pkg.source === "manifest")) {
+  if (!existing || SOURCE_RANK[pkg.source] > SOURCE_RANK[existing.source]) {
     map.set(key, pkg);
   }
+}
+
+/** Version specifiers that never resolve to a registry name. */
+const NON_REGISTRY_SPECIFIER_RE =
+  /^(?:git[+:]|github:|gitlab:|bitbucket:|file:|link:|portal:|workspace:|catalog:|https?:\/\/|ssh:|\.{1,2}\/)/i;
+
+/**
+ * The registry name a manifest entry actually resolves to.
+ * Git, file, link and workspace protocols are not registry packages, and an
+ * `npm:` alias points at a different name than its key.
+ */
+export function registryNameForManifestEntry(
+  name: string,
+  specifier: unknown,
+): string | undefined {
+  const spec = typeof specifier === "string" ? specifier.trim() : "";
+  if (NON_REGISTRY_SPECIFIER_RE.test(spec)) return undefined;
+
+  if (/^npm:/i.test(spec)) {
+    const target = spec.slice(4).trim();
+    if (!target) return undefined;
+    if (target.startsWith("@")) {
+      const slash = target.indexOf("/");
+      if (slash === -1) return undefined;
+      const at = target.indexOf("@", slash);
+      return at === -1 ? target : target.slice(0, at);
+    }
+    const at = target.indexOf("@");
+    return at > 0 ? target.slice(0, at) : target;
+  }
+
+  return name;
 }
 
 async function collectFromPackageJson(
@@ -108,15 +156,19 @@ async function collectFromPackageJson(
   for (const section of sections) {
     const deps = json[section];
     if (!deps || typeof deps !== "object") continue;
-    for (const name of Object.keys(deps as Record<string, unknown>)) {
+    for (const [name, specifier] of Object.entries(
+      deps as Record<string, unknown>,
+    )) {
+      const registryName = registryNameForManifestEntry(name, specifier);
+      if (!registryName) continue;
       const line = findLineContaining(raw, `"${name}"`);
       addPkg(map, {
-        name,
+        name: registryName,
         ecosystem: "npm",
         file: rel(root, file),
         line,
         source: "manifest",
-        specifier: name,
+        specifier: registryName,
       });
     }
   }
@@ -258,8 +310,11 @@ async function collectPyImports(
     }
     for (const name of names) {
       if (!name || isPythonBuiltin(name)) continue;
+      // Verify the distribution that provides the import, not the import name.
+      const distribution = pypiDistributionForImport(name);
+      if (!distribution) continue;
       addPkg(map, {
-        name,
+        name: distribution,
         ecosystem: "pypi",
         file: rel(root, file),
         line: i + 1,
@@ -290,6 +345,7 @@ export const GHOST_DEPS_DISCOVERY_PATTERNS = [
   "recursive walk (ignore: node_modules, .git, dist, build, .venv, …)",
   "manifests: package.json, requirements*.txt, pyproject.toml",
   "imports: .js .mjs .cjs .jsx .ts .tsx .py (not .d.ts)",
+  ...AGENT_DOC_DISCOVERY_PATTERNS,
 ] as const;
 
 export interface CollectPackagesResult {
@@ -342,6 +398,20 @@ export async function collectPackagesDetailed(
       await collectPyImports(rootDir, file, map);
       filesAnalyzed++;
     }
+  }
+
+  // Install commands in prose run before any manifest exists.
+  for (const file of files) {
+    const base = file.split(/[/\\]/).pop() ?? "";
+    if (base === "package.json" || base === "pyproject.toml") continue;
+    if (isRequirementsFile(base) || !isAgentDocFile(base)) continue;
+    for (const pkg of await collectDocInstallPackages(
+      file,
+      rel(rootDir, file),
+    )) {
+      addPkg(map, pkg);
+    }
+    filesAnalyzed++;
   }
 
   return {

@@ -9,19 +9,35 @@ export type {
   RegistryClient,
   PackageInfo,
   DeclaredPackage,
+  PackageSource,
   ResolvedPackage,
 } from "./types.ts";
 export {
   collectPackages,
   collectPackagesDetailed,
   packageNameFromSpecifier,
+  registryNameForManifestEntry,
 } from "./collect.ts";
+export {
+  AGENT_DOC_DISCOVERY_PATTERNS,
+  collectDocInstallPackages,
+  extractInstallPackages,
+  isAgentDocFile,
+  npmNameFromToken,
+  pypiNameFromToken,
+} from "./collect-docs.ts";
+export type { DocInstallReference } from "./collect-docs.ts";
 export {
   analyzePackage,
   resolvePackages,
   runGhostDepsAnalysis,
 } from "./analyze.ts";
 export { levenshtein, normalizePackageName } from "./heuristics.ts";
+export {
+  PY_AMBIGUOUS_NAMESPACES,
+  PY_IMPORT_TO_DISTRIBUTION,
+  pypiDistributionForImport,
+} from "./py-import-map.ts";
 export { HttpRegistryClient } from "./registry/http-client.ts";
 export { RegistryCache } from "./registry/cache.ts";
 export {
@@ -47,7 +63,7 @@ export function createGhostDepsDetector(
     id: "ghost-deps",
     name: "Ghost dependencies / slopsquatting",
     description:
-      "Checks that declared or imported packages exist on registries and are not suspiciously new, rarely downloaded, or typosquatted.",
+      "Checks that every package declared, imported, or installed by an instruction file exists on its registry and is not suspiciously new, rarely downloaded, or typosquatted.",
     async run(ctx: ScanContext): Promise<Finding[]> {
       const registry =
         options.registry ??

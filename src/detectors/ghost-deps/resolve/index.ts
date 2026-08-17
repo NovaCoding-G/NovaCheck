@@ -1,4 +1,4 @@
-import type { Ecosystem } from "../types.ts";
+import type { Ecosystem, PackageSource } from "../types.ts";
 import {
   isJsRuntimeBuiltin,
   isPythonBuiltin,
@@ -56,7 +56,7 @@ export interface ResolveSpecifierInput {
   /** Bare package name derived for registry lookup (may equal specifier). */
   packageName: string;
   ecosystem: Ecosystem;
-  source: "manifest" | "import";
+  source: PackageSource;
   index: ProjectResolveIndex;
 }
 
@@ -163,6 +163,19 @@ export function resolveSpecifier(input: ResolveSpecifierInput): ResolutionResult
         reason: `Alias detected in ${cfg} (not evaluated in this version)`,
       });
     }
+  }
+
+  // An install command names a registry package directly: bundler aliases and
+  // path mappings cannot apply to something typed into a terminal.
+  if (source === "docs") {
+    return {
+      action: "check-registry",
+      resolversApplied: ["external-registry"],
+      resolversSkipped: skipped,
+      reason:
+        "Install command in documentation or agent instructions — resolved against the registry",
+      packageName,
+    };
   }
 
   // Manifest declarations are never "alias-blind": the name is an explicit dep.

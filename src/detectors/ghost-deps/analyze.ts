@@ -94,6 +94,7 @@ function findingBase(
       ecosystem: pkg.ecosystem,
       source: pkg.source,
       specifier: pkg.specifier,
+      ...(pkg.command ? { command: pkg.command } : {}),
       resolversApplied: pkg.resolution.resolversApplied,
       resolversSkipped: pkg.resolution.resolversSkipped,
       resolutionAction: pkg.resolution.action,
@@ -153,6 +154,20 @@ export function analyzePackage(
       ? ` The name is also very similar to the popular package \`${typosquatOf}\`, a typical slopsquatting or typosquatting pattern.`
       : "";
 
+    // An install command is executed before any review: a human copies it, or
+    // an agent reading the same instructions runs it unattended.
+    const docsNote =
+      pkg.source === "docs"
+        ? ` The reference is the install command \`${pkg.command ?? pkg.name}\` in ${pkg.file}, ` +
+          `so anyone (or any coding agent) following these instructions would install whatever gets registered under that name.`
+        : "";
+    const docsFix =
+      pkg.source === "docs"
+        ? `Remove or correct the install command in ${pkg.file}` +
+          (pkg.line ? ` (line ${pkg.line})` : "") +
+          ` before it is copied again, and check whether the same name reached a manifest or lockfile. `
+        : "";
+
     // Blind → HIGH (possible unresolved alias). High-confidence external → CRITICAL.
     // Typosquat of a popular name is always CRITICAL even under blind resolution.
     const severity: Finding["severity"] =
@@ -174,10 +189,11 @@ export function analyzePackage(
         kind,
         severity,
         `Package does not exist on ${registry}: ${pkg.name}`,
-        `The package \`${pkg.name}\` is declared or imported but does not exist on ${registry}. ` +
+        `The package \`${pkg.name}\` is declared, imported or installed but does not exist on ${registry}. ` +
           `This may be a hallucinated dependency (slopsquatting): an invented name that an attacker ` +
-          `could register and fill with malware.${whyTypo}${blindNote}`,
+          `could register and fill with malware.${whyTypo}${docsNote}${blindNote}`,
         `The package "${pkg.name}" (${registry}) does not exist on the registry. ` +
+          docsFix +
           `Find every reference in ${pkg.file}` +
           (pkg.line ? ` (line ${pkg.line})` : "") +
           ` and in manifests. ` +
