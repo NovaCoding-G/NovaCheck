@@ -1,0 +1,78 @@
+name: Ghost package report
+description: A hallucinated package NovaCheck missed, or a real package it flagged wrongly
+title: "[Ghost]: "
+labels: ["ghost-deps"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        These are the most useful issues in this repository. Both directions
+        matter: a ghost package that slipped through, and a legitimate package
+        reported as a ghost. Every accepted report becomes a test fixture.
+
+        Do not report vulnerabilities in NovaCheck itself here; follow SECURITY.md.
+  - type: dropdown
+    id: direction
+    attributes:
+      label: What happened
+      options:
+        - Missed a ghost package (false negative)
+        - Flagged a legitimate package (false positive)
+    validations:
+      required: true
+  - type: input
+    id: package
+    attributes:
+      label: Package name and ecosystem
+      placeholder: axios-retry-helper (npm)
+    validations:
+      required: true
+  - type: dropdown
+    id: source
+    attributes:
+      label: Where the name is referenced
+      options:
+        - Manifest (package.json, requirements.txt, pyproject.toml)
+        - Import or require statement
+        - Install command in documentation or an agent instruction file
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: reference
+    attributes:
+      label: The exact reference
+      description: |
+        The line as written, with its file path. For an install command, paste
+        the command verbatim.
+      render: text
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Command and output
+      description: |
+        The command you ran (for example `npx novacheck . --ghosts --verbose`)
+        and what NovaCheck reported.
+      render: text
+    validations:
+      required: true
+  - type: textarea
+    id: why
+    attributes:
+      label: Why this is wrong
+      description: |
+        For a false positive: where the package really comes from (private
+        registry, alias, workspace, differing Python distribution name).
+        For a false negative: evidence that the name does not resolve, such as a
+        404 on the registry page.
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: NovaCheck version
+      placeholder: 0.4.0
+    validations:
+      required: true

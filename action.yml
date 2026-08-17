@@ -1,5 +1,5 @@
 name: NovaCheck
-description: Security and AI-provenance trust scan for pull requests
+description: Block hallucinated dependencies and AI-shaped security risks on pull requests
 author: NovaCoding-G
 branding:
   icon: shield
@@ -15,6 +15,12 @@ inputs:
   fail-on-incomplete:
     description: Fail when one or more inputs could not be analyzed
     default: "true"
+  only:
+    description: Run only these detectors, comma-separated (e.g. ghost-deps)
+    default: ""
+  skip:
+    description: Run every detector except these, comma-separated
+    default: ""
   offline:
     description: Disable package registry network requests
     default: "false"
@@ -52,6 +58,8 @@ runs:
       env:
         INPUT_PATH: ${{ inputs.path }}
         INPUT_FAIL_BELOW: ${{ inputs.fail-below }}
+        INPUT_ONLY: ${{ inputs.only }}
+        INPUT_SKIP: ${{ inputs.skip }}
         INPUT_OFFLINE: ${{ inputs.offline }}
         INPUT_CHANGED: ${{ inputs.changed }}
         INPUT_BASE: ${{ inputs.base }}
@@ -59,6 +67,12 @@ runs:
         INPUT_VERSION: ${{ inputs.version }}
       run: |
         args=("$GITHUB_WORKSPACE/$INPUT_PATH" "--sarif" "$GITHUB_WORKSPACE/.novacheck/novacheck-results.sarif" "--no-html" "--fail-below" "$INPUT_FAIL_BELOW")
+        if [[ -n "$INPUT_ONLY" ]]; then
+          args+=("--only" "$INPUT_ONLY")
+        fi
+        if [[ -n "$INPUT_SKIP" ]]; then
+          args+=("--skip" "$INPUT_SKIP")
+        fi
         if [[ "$INPUT_OFFLINE" == "true" ]]; then
           args+=("--offline")
         fi
