@@ -44,6 +44,60 @@ function loc(f: Finding): string {
   return f.line ? `${f.file}:${f.line}` : f.file;
 }
 
+/**
+ * The wedge block: package references that do not resolve to a real package.
+ * These are read before the score because they cannot be argued away.
+ */
+function ghostFindings(findings: Finding[]): Finding[] {
+  return findings.filter(
+    (f) =>
+      f.detectorId === "ghost-deps" &&
+      (f.id.includes("nonexistent") || f.id.includes("typosquat")),
+  );
+}
+
+function formatGhostBlock(findings: Finding[]): string[] {
+  const ghosts = ghostFindings(findings);
+  if (ghosts.length === 0) return [];
+
+  const lines: string[] = [];
+  lines.push("");
+  lines.push(
+    `${ansi.red}${ansi.bold}Ghost packages${ansi.reset}  ` +
+      `${ghosts.length} package ${ghosts.length === 1 ? "reference does" : "references do"} not resolve to a real package`,
+  );
+  for (const f of ghosts.slice(0, 5)) {
+    const meta = f.metadata ?? {};
+    const name = typeof meta.package === "string" ? meta.package : f.evidence;
+    const ecosystem =
+      typeof meta.ecosystem === "string"
+        ? meta.ecosystem === "npm"
+          ? "npm"
+          : "PyPI"
+        : "registry";
+    const typosquatOf =
+      typeof meta.typosquatOf === "string" ? meta.typosquatOf : undefined;
+    const where = loc(f);
+    const command = typeof meta.command === "string" ? meta.command : undefined;
+    const detail = typosquatOf
+      ? `looks like "${typosquatOf}"`
+      : "does not exist";
+    lines.push(
+      `  ${ansi.red}✗${ansi.reset} ${ansi.bold}${name}${ansi.reset} ` +
+        `${ansi.dim}(${ecosystem}, ${detail})${ansi.reset}` +
+        (where ? ` ${ansi.dim}· ${where}${ansi.reset}` : ""),
+    );
+    if (command) {
+      lines.push(`      ${ansi.dim}${command}${ansi.reset}`);
+    }
+  }
+  const hidden = ghosts.length - Math.min(ghosts.length, 5);
+  if (hidden > 0) {
+    lines.push(`  ${ansi.dim}… ${hidden} more in the full report${ansi.reset}`);
+  }
+  return lines;
+}
+
 /** Diagnostic block printed before findings when --verbose / --debug is on. */
 export function formatVerboseDiagnostics(result: ScanResult): string {
   const d = result.diagnostics;
@@ -136,6 +190,8 @@ export function formatTerminalReport(
 
   const summary = SEV_SUMMARY(counts);
   if (summary) lines.push(`Severity  ${summary}`);
+
+  lines.push(...formatGhostBlock(result.findings));
 
   lines.push("");
   lines.push(`${ansi.bold}What to do next${ansi.reset}`);

@@ -18,6 +18,10 @@ function f(severity: Finding["severity"], title = "x"): Finding {
   };
 }
 
+function fromDetector(detectorId: string, severity: Finding["severity"]): Finding {
+  return { ...f(severity, detectorId), detectorId };
+}
+
 describe("computeTrustScore", () => {
   test("perfect score with no findings", () => {
     expect(computeTrustScore([])).toBe(100);
@@ -52,6 +56,30 @@ describe("priority ordering", () => {
       "critical",
       "medium",
       "low",
+    ]);
+  });
+
+  test("ghost packages are read first among equally severe findings", () => {
+    const sorted = sortFindings([
+      fromDetector("dangerous-sinks", "critical"),
+      fromDetector("secrets", "critical"),
+      fromDetector("ghost-deps", "critical"),
+    ]);
+    expect(sorted.map((x) => x.detectorId)).toEqual([
+      "ghost-deps",
+      "secrets",
+      "dangerous-sinks",
+    ]);
+  });
+
+  test("severity still outranks detector priority", () => {
+    const sorted = sortFindings([
+      fromDetector("ghost-deps", "low"),
+      fromDetector("dangerous-sinks", "critical"),
+    ]);
+    expect(sorted.map((x) => x.detectorId)).toEqual([
+      "dangerous-sinks",
+      "ghost-deps",
     ]);
   });
 

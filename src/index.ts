@@ -39,6 +39,8 @@ export { formatSarifReport } from "./reporters/sarif.ts";
 export { formatBadgeMarkdown, formatBadgeSvg } from "./reporters/badge.ts";
 export {
   detectors,
+  DETECTOR_IDS,
+  selectDetectors,
   ghostDepsDetector,
   createGhostDepsDetector,
   secretsDetector,
@@ -56,3 +58,4 @@ export {
   aiPresenceDetector,
   createAiPresenceDetector,
 } from "./detectors/index.ts";
+export type { DetectorSelection } from "./detectors/index.ts";

@@ -20,6 +20,43 @@ export const detectors: Detector[] = [
   aiPresenceDetector,
 ];
 
+export const DETECTOR_IDS: readonly string[] = detectors.map((d) => d.id);
+
+export interface DetectorSelection {
+  /** Run only these detectors, in the default order. */
+  only?: readonly string[];
+  /** Run everything except these detectors. */
+  skip?: readonly string[];
+}
+
+/**
+ * Narrow a scan to specific detectors. Unknown ids fail loudly: a gate that
+ * silently runs fewer checks than requested is worse than no gate.
+ */
+export function selectDetectors(
+  selection: DetectorSelection = {},
+  list: readonly Detector[] = detectors,
+): Detector[] {
+  const known = new Set(list.map((d) => d.id));
+  for (const id of [...(selection.only ?? []), ...(selection.skip ?? [])]) {
+    if (!known.has(id)) {
+      throw new Error(
+        `Unknown detector "${id}". Available: ${[...known].join(", ")}.`,
+      );
+    }
+  }
+
+  const only = selection.only?.length ? new Set(selection.only) : undefined;
+  const skip = new Set(selection.skip ?? []);
+  const selected = list.filter(
+    (d) => (!only || only.has(d.id)) && !skip.has(d.id),
+  );
+  if (selected.length === 0) {
+    throw new Error("Detector selection is empty: nothing would be scanned.");
+  }
+  return selected;
+}
+
 export { ghostDepsDetector, createGhostDepsDetector } from "./ghost-deps/index.ts";
 export { secretsDetector, createSecretsDetector } from "./secrets/index.ts";
 export {
