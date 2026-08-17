@@ -1,0 +1,19 @@
+# Ghost hunt target list.
+#
+# One target per line: owner/repo or a full git URL. Blank lines and lines
+# starting with # are ignored.
+#
+# Copy this file to research/targets.txt before editing, and read
+# docs/RESEARCH.md first: how targets are selected has to be stated before a
+# hunt runs, and cannot be changed after seeing the results.
+#
+# Rules that are not optional:
+#   - define the population first (e.g. "first 200 results for a topic, on a
+#     given date") and record it next to the report;
+#   - never remove a target because its result is inconvenient;
+#   - never publish a repository's identity before contacting its maintainers.
+#
+#   bun run scripts/ghost-hunt.ts --targets research/targets.txt --anonymize
+#
+# Example (this repository, which is expected to come back clean):
+NovaCoding-G/NovaCheck
