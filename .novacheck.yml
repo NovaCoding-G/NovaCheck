@@ -6,3 +6,7 @@ ignore:
   paths:
     - tests/fixtures/**
     - tests/detectors/secrets.test.ts
+    # Deliberately unsafe demo project: it exists to be reported, not fixed.
+    - examples/ai-slop/**
+    # Ghost-hunt output: findings belong to the scanned repository, not to us.
+    - research/reports/**

