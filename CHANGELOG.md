@@ -5,6 +5,8 @@ All notable changes to NovaCheck are documented here. This project follows
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-08-17
+
 ### Added
 
 - `ghost-deps` reads install commands out of documentation and agent instruction
@@ -59,4 +61,5 @@ All notable changes to NovaCheck are documented here. This project follows
 - Initial public release with eight security and AI-provenance detectors,
   policy enforcement, terminal/HTML/SARIF reports, and a GitHub Action.
 
+[0.5.0]: https://github.com/NovaCoding-G/NovaCheck/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/NovaCoding-G/NovaCheck/compare/v0.3.0...v0.4.0

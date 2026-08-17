@@ -1,6 +1,6 @@
 {
   "name": "novacheck",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "Local-first CLI that finds hallucinated and typosquatted dependencies — in manifests, imports, and the install commands written in docs and agent instruction files — before you install them.",
   "type": "module",
   "license": "MIT",
