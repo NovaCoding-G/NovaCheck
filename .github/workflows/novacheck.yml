@@ -4,6 +4,10 @@ on:
   pull_request:
   push:
     branches: [main]
+  # Registry state changes even when the code does not: a name that was
+  # unregistered last week can be owned by someone else today.
+  schedule:
+    - cron: "17 6 * * 1"
 
 permissions:
   contents: read
