@@ -84,6 +84,77 @@ describe("reporters", () => {
     expect(text).toContain("Partial coverage");
   });
 
+  test("terminal leads with ghost packages when any name does not resolve", () => {
+    const text = formatTerminalReport(
+      fakeResult({
+        findings: [
+          {
+            id: "ghost-deps:nonexistent:npm:phantom-codemod",
+            detectorId: "ghost-deps",
+            severity: "critical",
+            title: "Package does not exist on npm: phantom-codemod",
+            explanation: "The package does not exist on the registry.",
+            fixPrompt: "Remove the install command.",
+            file: "AGENTS.md",
+            line: 14,
+            evidence: "phantom-codemod",
+            metadata: {
+              package: "phantom-codemod",
+              ecosystem: "npm",
+              source: "docs",
+              command: "npx phantom-codemod",
+            },
+          },
+          {
+            id: "ghost-deps:typosquat:npm:expres",
+            detectorId: "ghost-deps",
+            severity: "critical",
+            title: "Suspicious name (similar to express): expres",
+            explanation: "The name resembles a popular package.",
+            fixPrompt: "Replace it with express.",
+            file: "package.json",
+            line: 6,
+            evidence: "expres",
+            metadata: {
+              package: "expres",
+              ecosystem: "npm",
+              source: "manifest",
+              typosquatOf: "express",
+            },
+          },
+        ],
+      }),
+    );
+
+    expect(text).toContain("Ghost packages");
+    expect(text).toContain("2 package references do not resolve");
+    expect(text).toContain("phantom-codemod");
+    expect(text).toContain("npx phantom-codemod");
+    expect(text).toContain("AGENTS.md:14");
+    expect(text).toContain('looks like "express"');
+  });
+
+  test("no ghost block when every package resolves", () => {
+    const text = formatTerminalReport(
+      fakeResult({
+        findings: [
+          {
+            id: "ghost-deps:very-new:npm:brand-new-helper",
+            detectorId: "ghost-deps",
+            severity: "medium",
+            title: "Very recent package on npm: brand-new-helper",
+            explanation: "The package is very new.",
+            fixPrompt: "Verify the maintainers.",
+            file: "package.json",
+            line: 8,
+            metadata: { package: "brand-new-helper", ecosystem: "npm" },
+          },
+        ],
+      }),
+    );
+    expect(text).not.toContain("Ghost packages");
+  });
+
   test("verbose prints detector diagnostics before findings", () => {
     const text = formatTerminalReport(fakeResult(), { verbose: true });
     expect(text).toContain("Diagnostics (--verbose)");

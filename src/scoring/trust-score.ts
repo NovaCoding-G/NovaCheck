@@ -10,6 +10,25 @@ const SEVERITY_RANK: Record<Severity, number> = {
 };
 
 /**
+ * Reporting order for equally severe findings. A package that does not exist
+ * is the one risk nobody can triage away, so it is always read first.
+ */
+const DETECTOR_RANK: Record<string, number> = {
+  "ghost-deps": 0,
+  secrets: 1,
+  "env-leak": 2,
+  "supply-chain": 3,
+  "dangerous-sinks": 4,
+  "insecure-crypto": 5,
+  "ai-unreviewed": 6,
+  "ai-presence": 7,
+};
+
+function detectorRank(detectorId: string): number {
+  return DETECTOR_RANK[detectorId] ?? 50;
+}
+
+/**
  * Trust Score 0–100: start at 100, subtract severity weights, clamp.
  * Multiple findings of the same severity all count (publishing risk stacks).
  */
@@ -21,11 +40,13 @@ export function computeTrustScore(findings: Finding[]): number {
   return Math.max(0, Math.min(100, score));
 }
 
-/** Sort by severity (critical first), then file/line for stability. */
+/** Sort by severity, then detector priority, then file/line for stability. */
 export function sortFindings(findings: Finding[]): Finding[] {
   return [...findings].sort((a, b) => {
     const sr = SEVERITY_RANK[a.severity] - SEVERITY_RANK[b.severity];
     if (sr !== 0) return sr;
+    const dr = detectorRank(a.detectorId) - detectorRank(b.detectorId);
+    if (dr !== 0) return dr;
     const fa = a.file ?? "";
     const fb = b.file ?? "";
     if (fa !== fb) return fa.localeCompare(fb);

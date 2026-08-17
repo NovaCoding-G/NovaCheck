@@ -17,6 +17,7 @@ import {
   getChangedFiles,
 } from "./core/git-diff.ts";
 import { runScan } from "./core/scan.ts";
+import { selectDetectors } from "./detectors/index.ts";
 import { formatBadgeMarkdown, formatBadgeSvg } from "./reporters/badge.ts";
 import { formatHtmlReport } from "./reporters/html.ts";
 import { formatSarifReport } from "./reporters/sarif.ts";
@@ -37,8 +38,21 @@ interface CliArgs {
   changed: boolean;
   changedBase?: string;
   policyPath?: string;
+  only?: string[];
+  skip?: string[];
   help: boolean;
   version: boolean;
+}
+
+function parseDetectorList(value: string | undefined, flag: string): string[] {
+  const ids = (value ?? "")
+    .split(",")
+    .map((id) => id.trim())
+    .filter((id) => id.length > 0);
+  if (ids.length === 0) {
+    throw new Error(`${flag} requires a comma-separated list of detector ids.`);
+  }
+  return ids;
 }
 
 function parseArgs(argv: string[]): CliArgs {
@@ -91,6 +105,12 @@ function parseArgs(argv: string[]): CliArgs {
         args.changedBase = next;
         i++;
       }
+    } else if (a === "--ghosts") {
+      args.only = ["ghost-deps"];
+    } else if (a === "--only") {
+      args.only = parseDetectorList(argv[++i], "--only");
+    } else if (a === "--skip") {
+      args.skip = parseDetectorList(argv[++i], "--skip");
     } else if (a === "--policy") {
       const next = argv[++i];
       if (!next || next.startsWith("-")) {
@@ -130,6 +150,9 @@ Detectors:
   ai-unreviewed, ai-presence (explicit markers only)
 
 Options:
+  --ghosts          Ghost-hunt mode: run only the ghost-deps detector
+  --only <ids>      Run only these detectors (comma-separated)
+  --skip <ids>      Run every detector except these
   --offline         Disable network access (registry cache only)
   --changed [base]  Show and score findings only in files changed from base
                     (default: HEAD~1; includes staged, unstaged, and untracked)
@@ -173,9 +196,18 @@ async function main(): Promise<void> {
       args.failOnIncomplete ?? loadedPolicy.policy.failOnIncomplete,
   };
 
+  const selected =
+    args.only || args.skip
+      ? selectDetectors({ only: args.only, skip: args.skip })
+      : undefined;
+  if (selected) {
+    console.log(`Detectors: ${selected.map((d) => d.id).join(", ")}`);
+  }
+
   let result = await runScan({
     rootDir: args.rootDir,
     offline: args.offline,
+    detectors: selected,
   });
   let reportScope: {
     mode: "full" | "changed";
