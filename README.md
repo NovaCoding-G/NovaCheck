@@ -1,157 +1,146 @@
 # NovaCheck
 
 <p align="center">
-  <img src="docs/assets/IMG_0966.png"
+  <img src="docs/assets/IMG_0966.png" alt="NovaCheck" width="180" />
+</p>
 
+<p align="center">
+  <b>The AI invented a dependency. Someone else can register it.</b><br />
+  NovaCheck finds package names your project references but that do not exist — before you install them.
+</p>
 
-[![CI](https://img.shields.io/github/actions/workflow/status/NovaCoding-G/NovaCheck/ci.yml?branch=main&label=CI&logo=github)](https://github.com/NovaCoding-G/NovaCheck/actions/workflows/ci.yml)
-[![npm version](https://img.shields.io/npm/v/novacheck?logo=npm&color=cb3837)](https://www.npmjs.com/package/novacheck)
-[![npm downloads](https://img.shields.io/npm/dm/novacheck?logo=npm)](https://www.npmjs.com/package/novacheck)
-[![License: MIT](https://img.shields.io/badge/license-MIT-green)](./LICENSE)
-[![Node.js](https://img.shields.io/node/v/novacheck?logo=nodedotjs&label=node)](https://nodejs.org)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
-[![SARIF](https://img.shields.io/badge/SARIF-GitHub%20Code%20Scanning-2088FF?logo=githubactions&logoColor=white)](https://docs.github.com/en/code-security/code-scanning)
-[![Local-first](https://img.shields.io/badge/privacy-local--first-16794b)](#privacy--design-principles)
-[![npx](https://img.shields.io/badge/npx-novacheck-black?logo=npm)](https://www.npmjs.com/package/novacheck)
-[![GitHub stars](https://img.shields.io/github/stars/NovaCoding-G/NovaCheck?style=social)](https://github.com/NovaCoding-G/NovaCheck)
-
-**Run this before shipping AI-generated code.**
-
-NovaCheck is a local-first security and AI-provenance scanner built for the reality of modern development: Cursor, Copilot, Claude, ChatGPT, and agents that ship working code faster than humans can review it.
-
-One command produces a **0–100 Trust Score**, prioritized findings, copy-paste fix prompts, an HTML report, and GitHub Code Scanning annotations via SARIF.
+<p align="center">
+  <a href="https://github.com/NovaCoding-G/NovaCheck/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/NovaCoding-G/NovaCheck/ci.yml?branch=main&label=CI&logo=github" alt="CI" /></a>
+  <a href="https://www.npmjs.com/package/novacheck"><img src="https://img.shields.io/npm/v/novacheck?logo=npm&color=cb3837" alt="npm version" /></a>
+  <a href="https://www.npmjs.com/package/novacheck"><img src="https://img.shields.io/npm/dm/novacheck?logo=npm" alt="npm downloads" /></a>
+  <a href="./LICENSE"><img src="https://img.shields.io/badge/license-MIT-green" alt="License: MIT" /></a>
+  <a href="https://nodejs.org"><img src="https://img.shields.io/node/v/novacheck?logo=nodedotjs&label=node" alt="Node.js" /></a>
+  <a href="https://docs.github.com/en/code-security/code-scanning"><img src="https://img.shields.io/badge/SARIF-GitHub%20Code%20Scanning-2088FF?logo=githubactions&logoColor=white" alt="SARIF" /></a>
+  <a href="#privacy--design-principles"><img src="https://img.shields.io/badge/privacy-local--first-16794b" alt="Local-first" /></a>
+  <a href="https://github.com/NovaCoding-G/NovaCheck"><img src="https://img.shields.io/github/stars/NovaCoding-G/NovaCheck?style=social" alt="GitHub stars" /></a>
+</p>
 
 ```bash
 npx novacheck .
 ```
 
-<p align="center">
-  <img src="docs/assets/novacheck-terminal.jpg" alt="NovaCheck CLI blocking a risky AI-generated project" width="820" />
-</p>
-
-> NovaCheck detects **explicit AI provenance**, not unreliable writing-style guesses.
-> Source code stays on your machine. Network access is only used for package
-> registry metadata (package names only), and can be turned off with `--offline`.
+Requires **Node.js 20+**. No account, no upload, no config.
 
 ---
 
-## Why NovaCheck exists
+## The 30-second demo
 
-I build with AI every day. The loop is addictive: describe a feature, accept the
-diff, move on. The code often *works*. That is exactly the problem.
+This repository ships a deliberately broken project. Run the scanner on it:
 
-AI is excellent at producing plausible patterns and terrible at owning the
-consequences. In real projects I kept seeing the same class of mistakes:
+```bash
+git clone https://github.com/NovaCoding-G/NovaCheck.git
+cd NovaCheck
+npx novacheck examples/ai-slop --ghosts
+```
 
-- a dependency name that looked right and did not exist on npm (slopsquatting);
-- `exec(\`rm -rf ${userInput}\`)` because “it just works”;
-- SQL built with string concatenation instead of bound parameters;
-- API keys pasted into `.env.example` “for convenience”;
-- `Math.random()` used to mint tokens;
-- `postinstall` scripts copied from a random gist;
-- AI-authored hunks merged with nobody ever reading them.
+```text
+BLOCKED  Trust Score 0/100
 
-Traditional scanners were either too noisy, too generic, or blind to the AI
-workflow itself. I wanted something I would actually run before every push:
+Ghost packages  6 package references do not resolve to a real package
+  ✗ phantom-migrate (npm, does not exist) · AGENTS.md:9
+      npx phantom-migrate --apply
+  ✗ dotenvv (npm, looks like "dotenv") · package.json:13
+  ✗ axios-retry-helper (npm, does not exist) · package.json:14
+  ✗ supabase-auth-helpers-nextjs (npm, does not exist) · package.json:18
+  ✗ requests-toolkit-lite (PyPI, does not exist) · requirements.txt:2
+  … 1 more in the full report
+```
 
-1. **local-first** — no uploading the repo to a third party;
-2. **high precision** — fewer findings, but ones you should fix;
-3. **actionable** — every issue comes with a fix prompt you can paste into your AI;
-4. **CI-native** — policy, SARIF, and GitHub Action so “looks fine locally”
-   is not the only gate.
-
-NovaCheck is that tool. It is the review pass I wish I had the first time an
-AI-generated dependency almost shipped.
+Every name above was verified as unregistered when the demo was written.
+`npm install` would have failed on some of them — and silently succeeded on any
+that an attacker registers first.
 
 <p align="center">
-  <img src="docs/assets/novacheck-ready.jpg" alt="NovaCheck CLI showing Trust Score 100/100" width="820" />
+  <img src="docs/assets/novacheck-terminal.jpg" alt="NovaCheck blocking a risky AI-generated project" width="820" />
 </p>
 
 ---
 
-## What you get
+## Why this specific problem
 
-| Output | Purpose |
+Language models do not look packages up; they predict names. The predicted name
+is plausible, memorable, and often unregistered. Anyone can register it and ship
+whatever they want under it — the classic slopsquatting setup. It only takes one
+developer, or one coding agent, copying the install command.
+
+The reference does not start in `package.json`. It starts in prose:
+
+1. a model writes `npm install supabase-auth-helpers-nextjs` in a README,
+   a setup guide, an `AGENTS.md`, or a skill file;
+2. a human or an agent runs it;
+3. the name reaches a manifest, a lockfile, a container image, production.
+
+**NovaCheck checks all three layers.** Manifests and imports, like other tools —
+and install commands written in documentation and agent instruction files, which
+is where the name exists first and where nothing else looks.
+
+| Where a hallucinated name lives | Checked |
 | --- | --- |
-| Trust Score `0–100` | Instant go / no-go signal for shipping |
-| Terminal report | Priority findings + next steps in the CLI |
-| HTML report | Shareable, filterable review in the browser |
-| Fix prompts | Copy into Cursor / Copilot / ChatGPT to remediate |
-| SARIF | GitHub Code Scanning annotations on PRs |
-| Badge (opt-in) | `![NovaCheck](...)` for the README |
+| `package.json`, `requirements.txt`, `pyproject.toml` | yes |
+| `import` / `require` / `from … import` | yes |
+| `npm i`, `npx`, `pnpm add`, `bun add`, `bunx` in `*.md` | yes |
+| `pip install`, `uv add`, `poetry add`, `pipx install` in docs | yes |
+| `AGENTS.md`, `SKILL.md`, `*.mdc`, `*.rules`, agent instruction files | yes |
+
+Precision matters more than reach here, so NovaCheck deliberately does not check
+what it cannot attribute: git/file/link/workspace dependencies are not registry
+packages, Python import names are mapped to their real distribution
+(`import yaml` → `PyYAML`), shared namespaces (`google`, `azure`) are skipped,
+and documentation placeholders (`npm install <your-package>`) are ignored.
+
+---
+
+## The rest of the scan
+
+The ghost hunt is the reason to install NovaCheck. Once it is running, seven more
+detectors cover the risks that show up in the same commits, and a `0–100` Trust
+Score turns the result into a single go / no-go signal.
+
+| Detector | What it looks for |
+| --- | --- |
+| `ghost-deps` | Hallucinated / typosquatted npm & PyPI packages, including install commands in docs |
+| `secrets` | Hardcoded credentials (secretlint + entropy) |
+| `env-leak` | `.env` files unprotected or already tracked by Git |
+| `supply-chain` | Dangerous lifecycle scripts, `git+http://` dependencies |
+| `dangerous-sinks` | Shell/SQL injection, CORS `*`, TLS verify off, `eval`, XSS sinks, unsafe pickle/YAML |
+| `insecure-crypto` | Weak crypto and predictable tokens in a security context |
+| `ai-unreviewed` | AI-authored ranges no human reviewed (Agent Trace / SPDX) |
+| `ai-presence` | Explicit AI markers and disclosures (informational only) |
+
+Every finding carries a location, why it is a risk, and a fix prompt you can
+paste into whichever assistant wrote the code.
 
 <p align="center">
   <img src="docs/assets/novacheck-html-report.jpg" alt="NovaCheck HTML report with Trust Score and findings" width="820" />
 </p>
 
-The HTML report is written by default to `.novacheck/report.html`.
-Use `--no-html` to skip it, or `--html path` to choose another location.
-
 ---
 
-## What it catches
-
-NovaCheck is optimized for **AI-shaped risk**, not every theoretical CVE.
-
-| Detector | What it looks for |
-| --- | --- |
-| `ghost-deps` | Hallucinated / typosquatted npm & PyPI packages |
-| `secrets` | Hardcoded credentials (secretlint + entropy) |
-| `env-leak` | `.env` files that are unprotected or already tracked by Git |
-| `supply-chain` | Dangerous lifecycle scripts, `git+http://` deps |
-| `dangerous-sinks` | Shell/SQL injection, CORS `*`, TLS verify off, `eval`, XSS sinks, unsafe pickle/YAML |
-| `insecure-crypto` | Weak crypto and predictable tokens in security context |
-| `ai-unreviewed` | AI-authored ranges without human review (Agent Trace / SPDX) |
-| `ai-presence` | Explicit AI markers (`Generated by Cursor`, `AI_DISCLOSURE.md`, trailers) |
-
-`ai-presence` is informational by design: disclosure is good. It does not tank
-the Trust Score. `ai-unreviewed` is the actionable provenance signal.
-
----
-
-## Quick start
-
-Requires **Node.js 20+**.
+## Use it as a gate
 
 ```bash
-# one-shot, no global install
-npx novacheck .
+# ghost hunt only — fast, and the check that blocks releases
+npx novacheck . --ghosts
 
-# only files changed vs main
-npx novacheck . --changed origin/main
-
-# fully offline (skip registry lookups)
-npx novacheck . --offline
-
-# fail CI under a score threshold
+# full scan, fail the build below a score, annotate the PR
 npx novacheck . --fail-below 85 --sarif
 
-# fail closed if a file or registry package could not be analyzed
+# only what this branch introduced
+npx novacheck . --changed origin/main
+
+# no network: registry cache only
+npx novacheck . --offline
+
+# fail closed when an input could not be analyzed
 npx novacheck . --fail-on-incomplete
 ```
 
-### Useful flags
-
-```bash
-npx novacheck . --verbose
-npx novacheck . --html .novacheck/report.html
-npx novacheck . --sarif ./results.sarif
-npx novacheck . --badge
-npx novacheck . --policy .novacheck.yml
-npx novacheck --version
-```
-
----
-
-## Pull request scanning
-
-Scan only what a branch introduced, then upload SARIF to GitHub Code Scanning:
-
-```bash
-npx novacheck . --changed origin/main --sarif
-```
-
-Reusable GitHub Action (after you publish or fork the repo):
+In GitHub Actions:
 
 ```yaml
 name: NovaCheck
@@ -180,29 +169,25 @@ jobs:
           base: "origin/main"
 ```
 
-The Action fails the job when policy is violated. SARIF upload is skipped on
-fork PRs that lack `security-events: write`, so external contributors do not
-break CI for a permissions issue.
+`changed: true` is a diff gate, not a full-repository certification: run an
+additional full scan on `main`. SARIF upload is skipped on fork pull requests
+that lack `security-events: write`, so external contributors never break CI over
+a permissions issue.
 
-`changed: true` reports only risks attached to files introduced by the pull
-request. It is intentionally a diff gate, not a full-repository certification.
-Run an additional full scan on `main` (and optionally on a schedule):
+<details>
+<summary>Other flags and policy file</summary>
 
-```yaml
-- uses: NovaCoding-G/NovaCheck@v0.4.0
-  with:
-    changed: "false"
-    fail-below: "85"
-    fail-on-incomplete: "true"
+```bash
+npx novacheck . --only ghost-deps,secrets   # pick the checks
+npx novacheck . --skip ai-presence          # drop the noisy-for-you ones
+npx novacheck . --verbose                   # what was scanned and why
+npx novacheck . --html .novacheck/report.html
+npx novacheck . --sarif ./results.sarif
+npx novacheck . --badge
+npx novacheck . --policy .novacheck.yml
 ```
 
-Release Action tags execute the same exact npm package as `npx novacheck`.
-
----
-
-## Policy
-
-Create `.novacheck.yml` in the project root:
+`.novacheck.yml`:
 
 ```yaml
 minimumScore: 85
@@ -211,69 +196,84 @@ failOn:
   - critical
 ignore:
   detectors:
-    - ai-presence          # transparency, not a vuln
+    - ai-presence          # transparency, not a vulnerability
   findings:
     - dangerous-sinks/example-approved-risk
   paths:
     - tests/fixtures/**
-    - "**/*.test.ts"
 ```
 
-CLI flags override policy when both are set (e.g. `--fail-below`).
-Local scans warn on incomplete analysis by default; CI should set
-`failOnIncomplete: true` (or use `--fail-on-incomplete`) to fail closed.
+CLI flags override the policy file. The HTML report is written to
+`.novacheck/report.html` by default; `--no-html` skips it.
+
+Trust Score: findings subtract from 100 by severity (critical −25, high −12,
+medium −5, low −2, info 0). Status follows your policy, not a vanity threshold.
+
+</details>
 
 ---
 
-## Trust Score
+## Public research
 
-Findings subtract from 100 by severity:
+The detector is only credible if its findings hold up on real repositories, so
+the evidence is generated by a script anyone can rerun:
 
-| Severity | Weight |
-| --- | --- |
-| critical | −25 |
-| high | −12 |
-| medium | −5 |
-| low | −2 |
-| info | 0 |
+```bash
+bun run scripts/ghost-hunt.ts owner/repo --out research/reports
+```
 
-Status in the UI follows your policy (`minimumScore` / `failOn`), not a hard-coded vanity threshold.
+It clones shallowly, runs the ghost hunt, applies the scanned repository's own
+policy, and writes a markdown report plus a JSON dataset. Disclosure rules,
+report format, and what must never be published are in
+[docs/RESEARCH.md](./docs/RESEARCH.md).
+
+Found a hallucinated package NovaCheck missed, or a name it flagged wrongly?
+That is the most useful issue you can open — there is
+[a template for it](https://github.com/NovaCoding-G/NovaCheck/issues/new/choose),
+and both outcomes become test fixtures.
 
 ---
 
 ## Privacy & design principles
 
-- **Local-first** — analysis runs on your machine / CI runner.
-- **No style heuristics** — we do not guess “this looks AI-written”.
-- **Provenance when available** — Agent Trace, SPDX-AI-Disclosure, commit trailers, explicit markers.
-- **Precision over feature count** — noisy detectors get fixed or removed (e.g. version-blind CVE lookup was dropped).
-- **Fix prompts included** — the tool should shorten the loop, not only shame the score.
+- **Local-first** — analysis runs on your machine or your CI runner. Source code
+  is never uploaded. The only network calls are registry metadata lookups
+  (package names), and `--offline` removes them.
+- **No style heuristics** — NovaCheck never guesses "this looks AI-written". AI
+  provenance comes from explicit signals (Agent Trace, SPDX-AI-Disclosure,
+  commit trailers, markers) or it is not reported.
+- **Precision over reach** — a detector that cries wolf gets fixed or deleted.
+  Version-blind CVE lookup was removed for exactly that reason.
+- **Every finding is actionable** — location, cause, and a fix prompt.
+
+## What NovaCheck is not
+
+- Not a vulnerability database. It does not track CVEs or advisories; use
+  `npm audit`, Dependabot, or a full SCA tool for that.
+- Not a malware sandbox. It reads code and registry metadata; it never installs
+  or executes your dependencies.
+- Not a SAST platform. Its sink rules are a small, high-confidence set, not a
+  replacement for CodeQL or Semgrep on a large codebase.
+- Not a runtime or agent monitor. It runs before you ship, not while you serve.
+- Not ecosystem-complete. Ghost detection covers npm and PyPI today.
 
 ---
 
 ## Development
 
-Runtime for published packages: Node.js 20+.  
-Development uses [Bun](https://bun.sh):
+Runtime for published packages: Node.js 20+. Development uses [Bun](https://bun.sh):
 
 ```bash
 bun install
-bun run check          # typecheck + tests + build + CLI smoke
-bun run src/cli.ts . --offline --allow-incomplete
+bun run check                      # typecheck + tests + build + CLI smoke
+bun run src/cli.ts . --offline
 ```
 
-Maintainers: see [the release runbook](./docs/releasing.md) and
-[CHANGELOG.md](./CHANGELOG.md).
+Contributions: [CONTRIBUTING.md](./CONTRIBUTING.md) ·
+Direction and non-goals: [docs/POSITIONING.md](./docs/POSITIONING.md) ·
+Releases: [docs/releasing.md](./docs/releasing.md) ·
+Vulnerabilities in NovaCheck itself: [SECURITY.md](./SECURITY.md).
 
 ---
-
-## Security
-
-Please do not disclose vulnerabilities in public issues. Follow
-[SECURITY.md](./SECURITY.md).
-
----
-
-## License
 
 MIT © [NovaCoding-G](https://github.com/NovaCoding-G) · novacodingg@gmail.com
