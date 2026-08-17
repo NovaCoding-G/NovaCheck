@@ -3,6 +3,10 @@ failOn:
   - critical
 failOnIncomplete: true
 ignore:
+  findings:
+    # The README quotes real scanner output, including the ghost install command
+    # from examples/ai-slop. Documenting a ghost package is not installing one.
+    - ghost-deps:nonexistent:npm:phantom-migrate
   paths:
     - tests/fixtures/**
     - tests/detectors/secrets.test.ts
